@@ -1,20 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+        <Description>Entity Framework Core persistence for DragonSpark.Acme certificates.</Description>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\DragonSpark.Acme\DragonSpark.Acme.csproj" />
+        <ProjectReference Include="..\DragonSpark.Acme\DragonSpark.Acme.csproj"/>
+        <ProjectReference Include="..\DragonSpark.AspNetCore.Acme\DragonSpark.AspNetCore.Acme.csproj"/>
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.23" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.23"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.23"/>
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.2"/>
     </ItemGroup>
+
 </Project>

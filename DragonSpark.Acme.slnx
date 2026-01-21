@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="DragonSpark.Acme.EntityFramework/DragonSpark.Acme.EntityFramework.csproj" />
   <Project Path="DragonSpark.Acme/DragonSpark.Acme.csproj" />
+  <Project Path="DragonSpark.AspNetCore.Acme/DragonSpark.AspNetCore.Acme.csproj" />
 </Solution>
