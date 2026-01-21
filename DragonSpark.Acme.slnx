@@ -1,1 +1,4 @@
-<Solution />
+<Solution>
+  <Project Path="DragonSpark.Acme.EntityFramework/DragonSpark.Acme.EntityFramework.csproj" />
+  <Project Path="DragonSpark.Acme/DragonSpark.Acme.csproj" />
+</Solution>
