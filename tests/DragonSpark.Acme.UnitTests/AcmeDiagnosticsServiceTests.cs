@@ -40,6 +40,8 @@ public class AcmeDiagnosticsServiceTests
         var service = new AcmeDiagnosticsService(_options, _accountStoreMock.Object, _httpClientFactoryMock.Object,
             _loggerMock.Object);
 
+        _loggerMock.Setup(x => x.IsEnabled(IsAny<LogLevel>())).Returns(true);
+
         // Act
         var result = await service.ValidateEnvironmentAsync(CancellationToken.None);
 

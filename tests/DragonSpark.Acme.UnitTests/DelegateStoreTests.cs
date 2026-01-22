@@ -68,3 +68,37 @@ public class DelegateStoreTests
         }
     }
 }
+
+public class DelegateChallengeStoreTests
+{
+    [Fact]
+    public async Task GetChallengeAsync_InvokesDelegate()
+    {
+        // Arrange
+        var invoked = false;
+        const string token = "token123";
+        const string expectedResponse = "response";
+
+        var store = new DelegateChallengeStore(Load, Save);
+
+        // Act
+        var result = await store.GetChallengeAsync(token, CancellationToken.None);
+
+        // Assert
+        Assert.True(invoked);
+        Assert.Equal(expectedResponse, result);
+
+        return;
+
+        Task<string?> Load(string t, CancellationToken cancellationToken)
+        {
+            if (t == token) invoked = true;
+            return Task.FromResult<string?>(expectedResponse);
+        }
+
+        Task Save(string t, string r, int ttl, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+    }
+}

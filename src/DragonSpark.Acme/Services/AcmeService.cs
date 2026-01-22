@@ -78,7 +78,7 @@ public partial class AcmeService(
         using (var validationActivity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.ValidateChallenges"))
         {
             var authzs = await order.Authorizations();
-            await ValidateAuthorizationsAsync(authzs, cancellationToken, validationActivity);
+            await ValidateAuthorizationsAsync(authzs, validationActivity, cancellationToken);
         }
 
         LogFinalizingOrder();
@@ -200,7 +200,7 @@ public partial class AcmeService(
     }
 
     private async Task ValidateAuthorizationsAsync(IEnumerable<IAuthorizationContext> authzs,
-        CancellationToken cancellationToken, Activity? activity)
+        Activity? activity, CancellationToken cancellationToken)
     {
         foreach (var authz in authzs)
         {

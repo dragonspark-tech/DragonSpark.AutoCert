@@ -1,12 +1,21 @@
-# DragonSpark.Acme
+<h1 align="center">
+  DragonSpark ACME
+</h1>
 
-A modern, lightweight, and extensible ACME (Let's Encrypt) client for .NET 10+.
+<p align="center">
+    <img alt="License" src="https://img.shields.io/github/license/dragonspark-tech/DragonSpark.Acme?style=for-the-badge&color=blue">
+</p>
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/dragonspark-tech/DragonSpark.Acme/build.yml?branch=main)
-![Nuget](https://img.shields.io/nuget/v/DragonSpark.Acme)
-![License](https://img.shields.io/github/license/dragonspark-tech/DragonSpark.Acme)
+<p align="center">
+   <img alt="Quality Gate" src="https://img.shields.io/sonar/quality_gate/dragonspark-tech_DragonSpark.Acme?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
+   <img alt="Quality Gate" src="https://img.shields.io/sonar/tech_debt/dragonspark-tech_DragonSpark.Acme?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
+   <img alt="Quality Gate" src="https://img.shields.io/sonar/violations/dragonspark-tech_DragonSpark.Acme?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
+   <img alt="Quality Gate" src="https://img.shields.io/sonar/coverage/dragonspark-tech_DragonSpark.Acme?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
+</p>
 
-## Features
+> A modern, lightweight, and extensible ACME (Let's Encrypt) client for .NET 10+.
+
+## 🧩 Features
 
 - **Automatic Certificate Management**: Automatically orders, validates, and installs SSL certificates from Let's Encrypt.
 - **Background Renewal**: Built-in background service monitors processing and renewing certificates before they expire.
@@ -22,7 +31,7 @@ A modern, lightweight, and extensible ACME (Let's Encrypt) client for .NET 10+.
     - **Configurable Keys**: Support for RSA (2048/4096) and ECDSA (P-256/P-384/P-521) keys.
     - **Distributed Locking**: Prevent race conditions in clustered environments using FileSystem or Redis locks.
 
-## Installation
+## ⚙️ Installation
 
 Install the NuGet package:
 
@@ -30,7 +39,7 @@ Install the NuGet package:
 dotnet add package DragonSpark.AspNetCore.Acme
 ```
 
-## Quick Start
+## 🚩 Quick Start
 
 1.  **Configure Services**: Add ACME services in your `Program.cs`.
 
@@ -170,7 +179,7 @@ builder.Services.AddAcme(o => o.DnsPropagationDelay = TimeSpan.FromSeconds(60))
     .AddDnsProvider<MyDnsProvider>();
 ```
 
-### Observability
+## 🔭 Observability
 
 The library supports OpenTelemetry for tracing and metrics:
 
@@ -181,13 +190,10 @@ The library supports OpenTelemetry for tracing and metrics:
   - `acme.challenges.duration` (Histogram)
   - `acme.certificates.expiry_days` (Gauge)
 
-```
+## 🙌 Contributing
 
-## Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+## 📝 License
 
-## License
-
-[MIT](LICENSE)
-```
+This project is licensed under the MIT license - see the [LICENSE](LICENSE.md) file for more details.

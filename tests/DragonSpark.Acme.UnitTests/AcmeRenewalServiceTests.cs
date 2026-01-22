@@ -131,4 +131,35 @@ public class AcmeRenewalServiceTests
         _acmeServiceMock.Verify(
             x => x.OrderCertificateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task CheckAndRenewCertificatesAsync_Handles_Renewal_Failure()
+    {
+        // Arrange
+        _certificateStoreMock.Setup(x => x.GetCertificateAsync("example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((X509Certificate2?)null);
+
+        _acmeServiceMock.Setup(x =>
+                x.OrderCertificateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Order failed"));
+
+        // Act
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        cts.CancelAfter(200);
+
+        await _service.StartAsync(cts.Token);
+        try
+        {
+            await Task.Delay(100, TestContext.Current.CancellationToken);
+        }
+        catch (TaskCanceledException)
+        {
+            // Task cancellation is expected here
+        }
+
+        // Assert
+        _acmeServiceMock.Verify(
+            x => x.OrderCertificateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.AtLeastOnce);
+    }
 }

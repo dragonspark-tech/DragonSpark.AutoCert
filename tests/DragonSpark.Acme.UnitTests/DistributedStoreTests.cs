@@ -4,6 +4,7 @@ using DragonSpark.Acme.Stores;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using Moq;
 
 namespace DragonSpark.Acme.UnitTests;
 
@@ -81,6 +82,23 @@ public class DistributedStoreTests
 
         // Act
         var result = await store.GetChallengeAsync("missing", CancellationToken.None);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task CertificateStore_Get_ReturnsNull_WhenDataIsInvalid()
+    {
+        // Arrange
+        var mockCache = new Mock<IDistributedCache>();
+        mockCache.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0x00, 0x01, 0x02]);
+
+        var store = new DistributedCertificateStore(mockCache.Object, _options);
+
+        // Act
+        var result = await store.GetCertificateAsync("example.com", CancellationToken.None);
 
         // Assert
         Assert.Null(result);

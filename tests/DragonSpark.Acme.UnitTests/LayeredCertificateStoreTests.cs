@@ -54,4 +54,26 @@ public class LayeredCertificateStoreTests
         _persistenceMock.Verify(x => x.GetCertificateAsync("example.com", It.IsAny<CancellationToken>()), Times.Once);
         _cacheMock.Verify(x => x.SaveCertificateAsync("example.com", cert, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task SaveCertificateAsync_UpdatesBothStores()
+    {
+        var cert = CreateDummyCertificate();
+
+        await _store.SaveCertificateAsync("example.com", cert, TestContext.Current.CancellationToken);
+
+        _persistenceMock.Verify(x => x.SaveCertificateAsync("example.com", cert, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _cacheMock.Verify(x => x.SaveCertificateAsync("example.com", cert, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteCertificateAsync_RemovesFromBothStores()
+    {
+        await _store.DeleteCertificateAsync("example.com", TestContext.Current.CancellationToken);
+
+        _persistenceMock.Verify(x => x.DeleteCertificateAsync("example.com", It.IsAny<CancellationToken>()),
+            Times.Once);
+        _cacheMock.Verify(x => x.DeleteCertificateAsync("example.com", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

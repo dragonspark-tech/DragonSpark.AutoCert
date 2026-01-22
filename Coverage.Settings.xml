@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <CodeCoverage>
+    <ModulePaths>
+      <Exclude>
+        <ModulePath>.*Microsoft\.Extensions\.Logging\.Generators.*</ModulePath>
+        <ModulePath>.*Microsoft\.Gen\.Logging.*</ModulePath>
+      </Exclude>
+    </ModulePaths>
+
+    <Sources>
+      <Exclude>
+        <Source>.*\.g\.cs$</Source>
+      </Exclude>
+    </Sources>
+
+    <Attributes>
+      <Exclude>
+        <Attribute>^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$</Attribute>
+        <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+      </Exclude>
+    </Attributes>
+  </CodeCoverage>
+
+  <EnableStaticManagedInstrumentation>True</EnableStaticManagedInstrumentation>
+  <EnableDynamicManagedInstrumentation>True</EnableDynamicManagedInstrumentation>
+</Configuration>
