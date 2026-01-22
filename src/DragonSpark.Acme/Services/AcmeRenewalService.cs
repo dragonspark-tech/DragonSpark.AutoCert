@@ -1,4 +1,7 @@
+using System.Collections.Concurrent;
+using System.Diagnostics.Metrics;
 using DragonSpark.Acme.Abstractions;
+using DragonSpark.Acme.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -14,10 +17,18 @@ public class AcmeRenewalService(
     IOptions<AcmeOptions> options,
     ILogger<AcmeRenewalService> logger) : BackgroundService
 {
+    private readonly ConcurrentDictionary<string, double> _domainExpiryDays = new();
     private readonly AcmeOptions _options = options.Value;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        AcmeDiagnostics.Meter.CreateObservableGauge("acme.certificates.expiry_days",
+            () =>
+            {
+                return _domainExpiryDays.Select(kvp =>
+                    new Measurement<double>(kvp.Value, new KeyValuePair<string, object?>("acme.domain", kvp.Key)));
+            });
+
         logger.LogInformation("Starting ACME Renewal Service.");
 
         while (!stoppingToken.IsCancellationRequested)
@@ -39,6 +50,8 @@ public class AcmeRenewalService(
     {
         if (_options.ManagedDomains.Count == 0) return;
 
+        using var activity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeRenewalService.CheckRenewals");
+
         using var scope = serviceProvider.CreateScope();
         var certificateStore = scope.ServiceProvider.GetRequiredService<ICertificateStore>();
         var acmeService = scope.ServiceProvider.GetRequiredService<IAcmeService>();
@@ -56,6 +69,8 @@ public class AcmeRenewalService(
                 }
 
                 var timeLeft = cert.NotAfter - DateTime.UtcNow;
+                _domainExpiryDays[domain] = timeLeft.TotalDays;
+
                 if (timeLeft < _options.RenewalThreshold)
                 {
                     logger.LogInformation("Certificate for {Domain} expires in {TimeLeft}. Renewing...", domain,

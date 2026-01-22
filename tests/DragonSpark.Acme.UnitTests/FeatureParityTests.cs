@@ -109,4 +109,9 @@ public class MockBuilder(IServiceCollection services) : IAcmeBuilder
     {
         return this;
     }
+
+    public IAcmeBuilder AddDnsProvider<T>() where T : class, IDnsProvider
+    {
+        return this;
+    }
 }

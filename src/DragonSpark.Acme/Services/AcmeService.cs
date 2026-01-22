@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using Certes;
 using Certes.Acme;
 using Certes.Acme.Resource;
 using DragonSpark.Acme.Abstractions;
+using DragonSpark.Acme.Diagnostics;
 using DragonSpark.Acme.Helpers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -33,6 +35,9 @@ public class AcmeService(
             throw new ArgumentException("At least one domain must be specified.", nameof(domains));
 
         await using var _ = await _lockProvider.AcquireLockAsync($"cert:{domainList[0]}", cancellationToken);
+
+        using var activity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.OrderCertificate");
+        activity?.SetTag("acme.domains", string.Join(",", domainList));
 
         logger.LogInformation("Starting certificate order for domains: {Domains}", string.Join(", ", domainList));
 
@@ -69,49 +74,61 @@ public class AcmeService(
 
         var order = await acme.NewOrder(domainList);
 
-        var authzs = await order.Authorizations();
-        foreach (var authz in authzs)
+        using (var validationActivity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.ValidateChallenges"))
         {
-            var authzResource = await authz.Resource();
-            var identifier = authzResource.Identifier.Value;
-            var status = authzResource.Status;
-
-            if (status == AuthorizationStatus.Valid)
+            var authzs = await order.Authorizations();
+            foreach (var authz in authzs)
             {
-                logger.LogInformation("Authorization for {Identifier} is already valid.", identifier);
-                continue;
-            }
+                var authzResource = await authz.Resource();
+                var identifier = authzResource.Identifier.Value;
+                validationActivity?.SetTag("acme.auth.identifier", identifier);
 
-            var handled = false;
-            foreach (var handler in challengeHandlers)
-            {
-                logger.LogInformation("Attempting validation for {Identifier} using {ChallengeType}", identifier,
-                    handler.ChallengeType);
-                try
+                var status = authzResource.Status;
+
+                if (status == AuthorizationStatus.Valid)
                 {
-                    if (await handler.HandleChallengeAsync(authz, cancellationToken))
+                    logger.LogInformation("Authorization for {Identifier} is already valid.", identifier);
+                    continue;
+                }
+
+                var handled = false;
+                foreach (var handler in challengeHandlers)
+                {
+                    logger.LogInformation("Attempting validation for {Identifier} using {ChallengeType}", identifier,
+                        handler.ChallengeType);
+                    try
                     {
-                        handled = true;
-                        break;
+                        var sw = Stopwatch.StartNew();
+                        if (await handler.HandleChallengeAsync(authz, cancellationToken))
+                        {
+                            sw.Stop();
+                            AcmeDiagnostics.ChallengeValidationDuration.Record(sw.Elapsed.TotalMilliseconds,
+                                new KeyValuePair<string, object?>("challenge.type", handler.ChallengeType));
+                            handled = true;
+                            break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Strategy {ChallengeType} failed for {Identifier}.",
+                            handler.ChallengeType,
+                            identifier);
                     }
                 }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Strategy {ChallengeType} failed for {Identifier}.", handler.ChallengeType,
-                        identifier);
-                }
-            }
 
-            if (!handled)
-            {
-                logger.LogError("No suitable challenge handler found or all failed for {Identifier}", identifier);
-                throw new InvalidOperationException($"Could not validate ownership for {identifier}");
+                if (!handled)
+                {
+                    logger.LogError("No suitable challenge handler found or all failed for {Identifier}", identifier);
+                    throw new InvalidOperationException($"Could not validate ownership for {identifier}");
+                }
             }
         }
 
         logger.LogInformation("Finalizing order...");
 
         var privateKey = KeyFactory.NewKey(GetKeyAlgorithm());
+
+        using var finalizeActivity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.FinalizeOrder");
         var certChain = await order.Generate(new CsrInfo
         {
             CountryName = _options.CsrInfo.CountryName,
@@ -144,6 +161,7 @@ public class AcmeService(
             }
 
         logger.LogInformation("Certificate successfully ordered and stored.");
+        AcmeDiagnostics.CertificatesRenewed.Add(1);
     }
 
     /// <inheritdoc />

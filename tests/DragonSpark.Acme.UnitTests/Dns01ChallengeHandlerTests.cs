@@ -1,4 +1,3 @@
-using Certes;
 using Certes.Acme;
 using Certes.Acme.Resource;
 using DragonSpark.Acme.Abstractions;
@@ -12,8 +11,8 @@ namespace DragonSpark.Acme.UnitTests;
 public class Dns01ChallengeHandlerTests
 {
     private readonly Mock<IDnsProvider> _dnsProviderMock;
-    private readonly Mock<ILogger<Dns01ChallengeHandler>> _loggerMock;
     private readonly Dns01ChallengeHandler _handler;
+    private readonly Mock<ILogger<Dns01ChallengeHandler>> _loggerMock;
     private readonly IOptions<AcmeOptions> _options;
 
     public Dns01ChallengeHandlerTests()
@@ -62,9 +61,13 @@ public class Dns01ChallengeHandlerTests
         Assert.True(result);
 
         // Verify Create -> Validate -> Delete order
-        _dnsProviderMock.Verify(m => m.CreateTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _dnsProviderMock.Verify(
+            m => m.CreateTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Once);
         challengeContextMock.Verify(m => m.Validate(), Times.Once);
-        _dnsProviderMock.Verify(m => m.DeleteTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _dnsProviderMock.Verify(
+            m => m.DeleteTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -95,6 +98,8 @@ public class Dns01ChallengeHandlerTests
         // Assert
         // Should ignore wildcard and use root domain for record
         Assert.True(result);
-        _dnsProviderMock.Verify(m => m.CreateTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _dnsProviderMock.Verify(
+            m => m.CreateTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Once);
     }
 }

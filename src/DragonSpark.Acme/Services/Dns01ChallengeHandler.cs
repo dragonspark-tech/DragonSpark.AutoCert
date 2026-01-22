@@ -4,6 +4,7 @@ using Certes;
 using Certes.Acme;
 using Certes.Acme.Resource;
 using DragonSpark.Acme.Abstractions;
+using DragonSpark.Acme.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -37,10 +38,15 @@ public class Dns01ChallengeHandler(
 
         try
         {
-            logger.LogInformation("Creating TXT record {RecordName} = {Value}. Waiting {Delay}s for propagation...", recordName, txtValue, _options.DnsPropagationDelay.TotalSeconds);
+            logger.LogInformation("Creating TXT record {RecordName} = {Value}. Waiting {Delay}s for propagation...",
+                recordName, txtValue, _options.DnsPropagationDelay.TotalSeconds);
             await dnsProvider.CreateTxtRecordAsync(recordName, txtValue, cancellationToken);
 
-            await Task.Delay(_options.DnsPropagationDelay, cancellationToken);
+            using (var activity = AcmeDiagnostics.ActivitySource.StartActivity("Dns01.WaitForPropagation"))
+            {
+                activity?.SetTag("acme.dns.delay", _options.DnsPropagationDelay.TotalSeconds);
+                await Task.Delay(_options.DnsPropagationDelay, cancellationToken);
+            }
 
             logger.LogInformation("Validating challenge...");
             await challenge.Validate();
@@ -60,7 +66,8 @@ public class Dns01ChallengeHandler(
                 return true;
             }
 
-            logger.LogError("DNS-01 challenge failed with status {Status}. Error: {Error}", result.Status, result.Error?.Detail);
+            logger.LogError("DNS-01 challenge failed with status {Status}. Error: {Error}", result.Status,
+                result.Error?.Detail);
             return false;
         }
         finally
