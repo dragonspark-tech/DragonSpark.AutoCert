@@ -1,5 +1,6 @@
 <Solution>
-  <Project Path="src/DragonSpark.Acme.EntityFramework/DragonSpark.Acme.EntityFramework.csproj" />
-  <Project Path="src/DragonSpark.Acme/DragonSpark.Acme.csproj" />
-  <Project Path="src/DragonSpark.AspNetCore.Acme/DragonSpark.AspNetCore.Acme.csproj" />
+    <Project Path="src/DragonSpark.Acme.EntityFramework/DragonSpark.Acme.EntityFramework.csproj"/>
+    <Project Path="src/DragonSpark.Acme.Testing/DragonSpark.Acme.Testing.csproj"/>
+    <Project Path="src/DragonSpark.Acme/DragonSpark.Acme.csproj"/>
+    <Project Path="src/DragonSpark.AspNetCore.Acme/DragonSpark.AspNetCore.Acme.csproj"/>
 </Solution>
