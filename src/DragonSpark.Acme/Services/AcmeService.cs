@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using Certes;
 using Certes.Acme.Resource;
 using DragonSpark.Acme.Abstractions;
@@ -12,9 +13,10 @@ namespace DragonSpark.Acme.Services;
 /// </summary>
 public class AcmeService(
     IOptions<AcmeOptions> options,
-    IChallengeStore challengeStore,
     ICertificateStore certificateStore,
     IAccountStore accountStore,
+    IEnumerable<ICertificateLifecycle> lifecycleHooks,
+    IEnumerable<IChallengeHandler> challengeHandlers,
     ILogger<AcmeService> logger) : IAcmeService
 {
     private readonly AcmeOptions _options = options.Value;
@@ -66,40 +68,39 @@ public class AcmeService(
         {
             var authzResource = await authz.Resource();
             var identifier = authzResource.Identifier.Value;
+            var status = authzResource.Status;
 
-            var challenge = await authz.Http();
-            var token = challenge.Token;
-            var keyAuth = challenge.KeyAuthz;
-
-            logger.LogInformation("Received challenge for {Identifier}. Token: {Token}", identifier, token);
-
-            await challengeStore.SaveChallengeAsync(token, keyAuth, 300, cancellationToken);
-
-            logger.LogInformation("Requesting validation for {Identifier}...", identifier);
-            var result = await challenge.Validate();
-
-            var retries = 0;
-            while (result.Status == ChallengeStatus.Pending || result.Status == ChallengeStatus.Processing)
+            if (status == AuthorizationStatus.Valid)
             {
-                if (retries > 60)
+                logger.LogInformation("Authorization for {Identifier} is already valid.", identifier);
+                continue;
+            }
+
+            var handled = false;
+            foreach (var handler in challengeHandlers)
+            {
+                logger.LogInformation("Attempting validation for {Identifier} using {ChallengeType}", identifier,
+                    handler.ChallengeType);
+                try
                 {
-                    logger.LogError("Validation timed out for {Identifier}", identifier);
-                    throw new TimeoutException($"Validation timed out for {identifier}");
+                    if (await handler.HandleChallengeAsync(authz, cancellationToken))
+                    {
+                        handled = true;
+                        break;
+                    }
                 }
-
-                await Task.Delay(1000, cancellationToken);
-                result = await challenge.Resource();
-                retries++;
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Strategy {ChallengeType} failed for {Identifier}.", handler.ChallengeType,
+                        identifier);
+                }
             }
 
-            if (result.Status != ChallengeStatus.Valid)
+            if (!handled)
             {
-                logger.LogError("Challenge validation failed for {Identifier}. Status: {Status}. Error: {Error}",
-                    identifier, result.Status, result.Error?.Detail);
-                throw new InvalidOperationException($"Challenge failed for {identifier}: {result.Error?.Detail}");
+                logger.LogError("No suitable challenge handler found or all failed for {Identifier}", identifier);
+                throw new InvalidOperationException($"Could not validate ownership for {identifier}");
             }
-
-            logger.LogInformation("Challenge valid for {Identifier}", identifier);
         }
 
         logger.LogInformation("Finalizing order...");
@@ -120,13 +121,54 @@ public class AcmeService(
 
         var cert = CertificateLoaderHelper.LoadFromBytes(pfxBytes, _options.CertificatePassword);
 
-
         foreach (var domain in domainList)
         {
             logger.LogInformation("Saving certificate for {Domain}", domain);
             await certificateStore.SaveCertificateAsync(domain, cert, cancellationToken);
         }
 
+        foreach (var hook in lifecycleHooks)
+            try
+            {
+                await hook.OnCertificateCreatedAsync(domainList[0], cert, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error executing lifecycle hook {HookType}", hook.GetType().Name);
+            }
+
         logger.LogInformation("Certificate successfully ordered and stored.");
+    }
+
+    /// <inheritdoc />
+    public async Task RevokeCertificateAsync(string domain, RevocationReason reason = RevocationReason.Unspecified,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogWarning("Revoking certificate for {Domain}. Reason: {Reason}", domain, reason);
+
+        var accountKeyPem = await accountStore.LoadAccountKeyAsync(cancellationToken);
+        if (string.IsNullOrEmpty(accountKeyPem))
+        {
+            logger.LogError("Cannot revoke certificate: No account key found.");
+            throw new InvalidOperationException("No ACME account found.");
+        }
+
+        var accountKey = KeyFactory.FromPem(accountKeyPem);
+        var acme = new AcmeContext(_options.CertificateAuthority, accountKey);
+        await acme.Account();
+
+        var cert = await certificateStore.GetCertificateAsync(domain, cancellationToken);
+        if (cert == null)
+        {
+            logger.LogError("Cannot revoke certificate: No certificate found for {Domain}", domain);
+            throw new InvalidOperationException($"No certificate found for {domain}");
+        }
+
+        var certBytes = cert.Export(X509ContentType.Cert);
+
+        await acme.RevokeCertificate(certBytes, reason, null);
+
+        logger.LogInformation("Certificate revoked. Deleting from store.");
+        await certificateStore.DeleteCertificateAsync(domain, cancellationToken);
     }
 }

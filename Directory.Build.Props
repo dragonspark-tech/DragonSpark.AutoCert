@@ -5,8 +5,12 @@
         <Copyright>Copyright © 2026 DragonSpark</Copyright>
         <RepositoryUrl>https://github.com/dragonspark-tech/acme</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Description>A modern, lightweight, and extensible ACME (Let's Encrypt) client for ASP.NET Core. Features include automatic renewal, distributed caching, and flexible challenge strategies.</Description>
+        <PackageTags>acme;letsencrypt;ssl;certificate;https;aspnetcore</PackageTags>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
-        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+        <TargetFramework>net10.0</TargetFramework>
 
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>

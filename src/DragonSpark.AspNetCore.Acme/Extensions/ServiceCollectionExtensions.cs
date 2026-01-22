@@ -24,16 +24,20 @@ public static class ServiceCollectionExtensions
         Action<AcmeOptions> configure)
     {
         services.Configure(configure);
-        
+
         services.TryAddSingleton<AcmeChallengeMiddleware>();
         services.TryAddSingleton<AcmeCertificateSelector>();
-        
+
         services.TryAddSingleton<ICertificateStore, FileSystemCertificateStore>();
         services.TryAddSingleton<IChallengeStore, MemoryChallengeStore>();
         services.TryAddSingleton<IAccountStore, FileSystemAccountStore>();
         services.TryAddSingleton<IAcmeService, AcmeService>();
-        
+        services.TryAddSingleton<AcmeDiagnosticsService>();
+
         services.AddHostedService<AcmeRenewalService>();
+
+        // Challenge Handlers
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IChallengeHandler, Http01ChallengeHandler>());
 
         return new AcmeBuilder(services);
     }
@@ -54,7 +58,7 @@ internal class AcmeBuilder(IServiceCollection services) : IAcmeBuilder
     {
         Services.AddKeyedSingleton<ICertificateStore, DistributedCertificateStore>("Cache");
         Services.AddKeyedSingleton<ICertificateStore, FileSystemCertificateStore>("Persistence");
-        
+
         Services.Replace(ServiceDescriptor.Singleton<ICertificateStore>(sp =>
             new LayeredCertificateStore(
                 sp.GetRequiredKeyedService<ICertificateStore>("Cache"),

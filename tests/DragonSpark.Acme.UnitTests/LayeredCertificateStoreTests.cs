@@ -4,7 +4,7 @@ using DragonSpark.Acme.Abstractions;
 using DragonSpark.Acme.Stores;
 using Moq;
 
-namespace DragonSpark.Acme.Testing;
+namespace DragonSpark.Acme.UnitTests;
 
 public class LayeredCertificateStoreTests
 {
@@ -32,7 +32,7 @@ public class LayeredCertificateStoreTests
         _cacheMock.Setup(x => x.GetCertificateAsync("example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateDummyCertificate());
 
-        var result = await _store.GetCertificateAsync("example.com");
+        var result = await _store.GetCertificateAsync("example.com", TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         _cacheMock.Verify(x => x.GetCertificateAsync("example.com", It.IsAny<CancellationToken>()), Times.Once);
@@ -50,7 +50,7 @@ public class LayeredCertificateStoreTests
         _persistenceMock.Setup(x => x.GetCertificateAsync("example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(cert);
 
-        var result = await _store.GetCertificateAsync("example.com");
+        var result = await _store.GetCertificateAsync("example.com", TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         _persistenceMock.Verify(x => x.GetCertificateAsync("example.com", It.IsAny<CancellationToken>()), Times.Once);

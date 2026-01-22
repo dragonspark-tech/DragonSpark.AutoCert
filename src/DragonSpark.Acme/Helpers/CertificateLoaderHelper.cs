@@ -12,20 +12,12 @@ public static class CertificateLoaderHelper
     public static X509Certificate2 LoadFromBytes(byte[] data, string? password = null,
         X509KeyStorageFlags flags = DefaultFlags)
     {
-#if NET10_0_OR_GREATER
         return X509CertificateLoader.LoadPkcs12(data, password, flags);
-#else
-        return new X509Certificate2(data, password, flags);
-#endif
     }
 
     public static X509Certificate2 LoadFromFile(string path, string? password = null,
         X509KeyStorageFlags flags = DefaultFlags)
     {
-#if NET10_0_OR_GREATER
         return X509CertificateLoader.LoadPkcs12FromFile(path, password, flags);
-#else
-        return new X509Certificate2(path, password, flags);
-#endif
     }
 }

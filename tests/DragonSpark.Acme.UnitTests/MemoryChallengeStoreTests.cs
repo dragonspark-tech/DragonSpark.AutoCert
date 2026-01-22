@@ -1,6 +1,6 @@
 using DragonSpark.Acme.Stores;
 
-namespace DragonSpark.Acme.Testing;
+namespace DragonSpark.Acme.UnitTests;
 
 public class MemoryChallengeStoreTests
 {
@@ -11,8 +11,8 @@ public class MemoryChallengeStoreTests
         var token = "token123";
         var response = "response123";
 
-        await store.SaveChallengeAsync(token, response);
-        var result = await store.GetChallengeAsync(token);
+        await store.SaveChallengeAsync(token, response, cancellationToken: TestContext.Current.CancellationToken);
+        var result = await store.GetChallengeAsync(token, TestContext.Current.CancellationToken);
 
         Assert.Equal(response, result);
     }
@@ -21,7 +21,7 @@ public class MemoryChallengeStoreTests
     public async Task Get_ReturnsNull_WhenMissing()
     {
         var store = new MemoryChallengeStore();
-        var result = await store.GetChallengeAsync("missing");
+        var result = await store.GetChallengeAsync("missing", TestContext.Current.CancellationToken);
         Assert.Null(result);
     }
 }

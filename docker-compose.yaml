@@ -1,0 +1,16 @@
+services:
+  pebble:
+    image: ghcr.io/letsencrypt/pebble:latest
+    command: -config /test/config/pebble-config.json
+    ports:
+      - 14000:14000 # ACME Directory
+    environment:
+      - PEBBLE_VA_ALWAYS_VALID=1
+      - PEBBLE_VA_NOSLEEP=1
+      - PEBBLE_WFE_NONCEREJECT=0
+
+  pebble-challtestsrv:
+    image: ghcr.io/letsencrypt/pebble-challtestsrv:latest
+    command: -defaultIPv6 ""
+    ports:
+      - 8055:8055 # HTTP Management
