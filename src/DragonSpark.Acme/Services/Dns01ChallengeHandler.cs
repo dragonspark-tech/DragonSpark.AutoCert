@@ -53,14 +53,7 @@ public class Dns01ChallengeHandler(
             logger.LogInformation("Validating challenge...");
             await challenge.Validate();
 
-            var result = await challenge.Resource();
-            while (result.Status == ChallengeStatus.Pending || result.Status == ChallengeStatus.Processing)
-            {
-                if (cancellationToken.IsCancellationRequested) return false;
-
-                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
-                result = await challenge.Resource();
-            }
+            var result = await WaitForValidationAsync(challenge, cancellationToken);
 
             if (result.Status == ChallengeStatus.Valid)
             {
@@ -88,5 +81,20 @@ public class Dns01ChallengeHandler(
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
+    }
+
+    private static async Task<Challenge> WaitForValidationAsync(IChallengeContext challenge,
+        CancellationToken cancellationToken)
+    {
+        var result = await challenge.Resource();
+        while (result.Status == ChallengeStatus.Pending || result.Status == ChallengeStatus.Processing)
+        {
+            if (cancellationToken.IsCancellationRequested) return result;
+
+            await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            result = await challenge.Resource();
+        }
+
+        return result;
     }
 }

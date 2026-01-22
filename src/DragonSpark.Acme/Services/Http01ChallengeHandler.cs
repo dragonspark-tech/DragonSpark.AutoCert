@@ -34,14 +34,31 @@ public class Http01ChallengeHandler(
         var token = challenge.Token;
         var keyAuth = challenge.KeyAuthz;
 
-        logger.LogInformation("Received HTTP-01 challenge. Token: {Token}", token);
+        logger.LogDebug("Received HTTP-01 challenge. Token: {Token}", token);
 
         await challengeStore.SaveChallengeAsync(token, keyAuth, 300, cancellationToken);
 
         logger.LogInformation("Requesting validation for HTTP-01 challenge...");
 
-        var result = await challenge.Validate();
+        await challenge.Validate();
 
+        var result = await WaitForValidationAsync(challenge, cancellationToken);
+
+        if (result.Status != ChallengeStatus.Valid)
+        {
+            logger.LogError("HTTP-01 Challenge validation failed. Status: {Status}. Error: {Error}",
+                result.Status, result.Error?.Detail);
+            throw new InvalidOperationException($"HTTP-01 Challenge failed: {result.Error?.Detail}");
+        }
+
+        logger.LogInformation("HTTP-01 Challenge valid.");
+        return true;
+    }
+
+    private async Task<Challenge> WaitForValidationAsync(IChallengeContext challenge,
+        CancellationToken cancellationToken)
+    {
+        var result = await challenge.Resource();
         var retries = 0;
         var maxRetries = (int)_options.ValidationTimeout.TotalSeconds;
 
@@ -58,14 +75,6 @@ public class Http01ChallengeHandler(
             retries++;
         }
 
-        if (result.Status != ChallengeStatus.Valid)
-        {
-            logger.LogError("HTTP-01 Challenge validation failed. Status: {Status}. Error: {Error}",
-                result.Status, result.Error?.Detail);
-            throw new InvalidOperationException($"HTTP-01 Challenge failed: {result.Error?.Detail}");
-        }
-
-        logger.LogInformation("HTTP-01 Challenge valid.");
-        return true;
+        return result;
     }
 }

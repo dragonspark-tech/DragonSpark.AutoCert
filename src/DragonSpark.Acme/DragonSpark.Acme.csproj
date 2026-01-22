@@ -15,4 +15,9 @@
         <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.2"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="DragonSpark.Acme.UnitTests"/>
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2"/>
+    </ItemGroup>
+
 </Project>

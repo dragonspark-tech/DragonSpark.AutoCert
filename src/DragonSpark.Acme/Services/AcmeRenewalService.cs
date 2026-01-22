@@ -60,23 +60,7 @@ public class AcmeRenewalService(
         foreach (var domain in _options.ManagedDomains)
             try
             {
-                var cert = await certificateStore.GetCertificateAsync(domain, cancellationToken);
-                if (cert == null)
-                {
-                    logger.LogInformation("Certificate for {Domain} not found. Initiating order.", domain);
-                    await acmeService.OrderCertificateAsync([domain], cancellationToken);
-                    continue;
-                }
-
-                var timeLeft = cert.NotAfter - DateTime.UtcNow;
-                _domainExpiryDays[domain] = timeLeft.TotalDays;
-
-                if (timeLeft < _options.RenewalThreshold)
-                {
-                    logger.LogInformation("Certificate for {Domain} expires in {TimeLeft}. Renewing...", domain,
-                        timeLeft);
-                    await acmeService.OrderCertificateAsync([domain], cancellationToken);
-                }
+                await ProcessDomainAsync(domain, certificateStore, acmeService, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -91,6 +75,30 @@ public class AcmeRenewalService(
                         logger.LogError(hookEx, "Error executing lifecycle hook {HookType} for failure",
                             hook.GetType().Name);
                     }
+
+                AcmeDiagnostics.CertificateRenewalFailures.Add(1);
             }
+    }
+
+    private async Task ProcessDomainAsync(string domain, ICertificateStore certificateStore, IAcmeService acmeService,
+        CancellationToken cancellationToken)
+    {
+        var cert = await certificateStore.GetCertificateAsync(domain, cancellationToken);
+        if (cert == null)
+        {
+            logger.LogInformation("Certificate for {Domain} not found. Initiating order.", domain);
+            await acmeService.OrderCertificateAsync([domain], cancellationToken);
+            return;
+        }
+
+        var timeLeft = cert.NotAfter - DateTime.UtcNow;
+        _domainExpiryDays[domain] = timeLeft.TotalDays;
+
+        if (timeLeft < _options.RenewalThreshold)
+        {
+            logger.LogInformation("Certificate for {Domain} expires in {TimeLeft}. Renewing...", domain,
+                timeLeft);
+            await acmeService.OrderCertificateAsync([domain], cancellationToken);
+        }
     }
 }

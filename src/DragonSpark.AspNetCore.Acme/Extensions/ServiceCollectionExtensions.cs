@@ -40,7 +40,7 @@ public static class ServiceCollectionExtensions
 
         // Challenge Handlers
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IChallengeHandler, Http01ChallengeHandler>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IChallengeHandler, Dns01ChallengeHandler>());
+
 
         services.TryAddSingleton<ILockProvider, FileSystemLockProvider>();
 
@@ -78,6 +78,7 @@ internal class AcmeBuilder(IServiceCollection services) : IAcmeBuilder
 
     public IAcmeBuilder AddDnsProvider<T>() where T : class, IDnsProvider
     {
+        Services.TryAddEnumerable(ServiceDescriptor.Singleton<IChallengeHandler, Dns01ChallengeHandler>());
         Services.AddSingleton<IDnsProvider, T>();
         return this;
     }
