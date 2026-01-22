@@ -60,6 +60,12 @@ public class AcmeOptions
     public TimeSpan ValidationTimeout { get; set; } = TimeSpan.FromSeconds(60);
 
     /// <summary>
+    ///     Gets or sets the delay to wait for DNS propagation before validating DNS-01 challenges.
+    ///     Defaults to 30 seconds.
+    /// </summary>
+    public TimeSpan DnsPropagationDelay { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
     ///     Gets or sets the password used to encrypt PFX files.
     ///     It is HIGHLY recommended to set this to a secure value.
     /// </summary>

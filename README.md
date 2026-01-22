@@ -143,6 +143,24 @@ builder.Services.AddAcme(...)
         load: (domain, token) => AzureKeyVault.GetSecretAsync(domain),
         save: (domain, cert, token) => AzureKeyVault.SetSecretAsync(domain, cert)
     );
+
+### DNS-01 Challenge Support
+Support for wildcard certificates using DNS validation.
+
+1. Implement `IDnsProvider`:
+```csharp
+public class MyDnsProvider : IDnsProvider
+{
+    public Task CreateTxtRecordAsync(string name, string value, CancellationToken token) { ... }
+    public Task DeleteTxtRecordAsync(string name, string value, CancellationToken token) { ... }
+}
+```
+
+2. Register and configure:
+```csharp
+builder.Services.AddAcme(o => o.DnsPropagationDelay = TimeSpan.FromSeconds(60))
+    .AddDnsProvider<MyDnsProvider>();
+```
 ```
 
 ## Contributing

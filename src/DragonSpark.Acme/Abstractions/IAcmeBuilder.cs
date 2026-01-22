@@ -26,4 +26,11 @@ public interface IAcmeBuilder
     /// </summary>
     /// <returns>The <see cref="IAcmeBuilder" />.</returns>
     IAcmeBuilder UseLayeredPersistence();
+
+    /// <summary>
+    ///     Adds a custom DNS provider for handling DNS-01 challenges.
+    /// </summary>
+    /// <typeparam name="T">The type of the DNS provider implementation.</typeparam>
+    /// <returns>The <see cref="IAcmeBuilder" />.</returns>
+    IAcmeBuilder AddDnsProvider<T>() where T : class, IDnsProvider;
 }
