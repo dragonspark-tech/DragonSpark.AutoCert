@@ -1,0 +1,88 @@
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using DragonSpark.Acme.Abstractions;
+using DragonSpark.AspNetCore.Acme.Https;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+namespace DragonSpark.Acme.UnitTests;
+
+public class AcmeCertificateSelectorTests
+{
+    private readonly Mock<ICertificateStore> _certificateStoreMock;
+    private readonly Mock<ILogger<AcmeCertificateSelector>> _loggerMock;
+
+    public AcmeCertificateSelectorTests()
+    {
+        _certificateStoreMock = new Mock<ICertificateStore>();
+        _loggerMock = new Mock<ILogger<AcmeCertificateSelector>>();
+    }
+
+    private X509Certificate2 CreateTestCertificate(string subjectName)
+    {
+        using var rsa = RSA.Create(2048);
+        var request =
+            new CertificateRequest($"CN={subjectName}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        return request.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
+    }
+
+    [Fact]
+    public async Task SelectCertificateAsync_ExactMatch_ReturnsCertificate()
+    {
+        // Arrange
+        var domain = "example.com";
+        var cert = CreateTestCertificate(domain);
+        _certificateStoreMock.Setup(x => x.GetCertificateAsync(domain, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cert);
+
+        var selector = new AcmeCertificateSelector(_certificateStoreMock.Object, _loggerMock.Object);
+
+        // Act
+        var result = await selector.SelectCertificateAsync(domain, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        _certificateStoreMock.Verify(x => x.GetCertificateAsync(domain, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SelectCertificateAsync_WildcardMatch_ReturnsCertificate()
+    {
+        // Arrange
+        var domain = "sub.example.com";
+        var wildcard = "*.example.com";
+        var cert = CreateTestCertificate(wildcard);
+
+        _certificateStoreMock.Setup(x => x.GetCertificateAsync(domain, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((X509Certificate2?)null); // Exact match fails
+
+        _certificateStoreMock.Setup(x => x.GetCertificateAsync(wildcard, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cert); // Wildcard match succeeds
+
+        var selector = new AcmeCertificateSelector(_certificateStoreMock.Object, _loggerMock.Object);
+
+        // Act
+        var result = await selector.SelectCertificateAsync(domain, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        _certificateStoreMock.Verify(x => x.GetCertificateAsync(wildcard, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SelectCertificateAsync_NoMatch_ReturnsNull()
+    {
+        // Arrange
+        var domain = "example.com";
+        _certificateStoreMock.Setup(x => x.GetCertificateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((X509Certificate2?)null);
+
+        var selector = new AcmeCertificateSelector(_certificateStoreMock.Object, _loggerMock.Object);
+
+        // Act
+        var result = await selector.SelectCertificateAsync(domain, CancellationToken.None);
+
+        // Assert
+        Assert.Null(result);
+    }
+}

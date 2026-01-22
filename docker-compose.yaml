@@ -14,3 +14,8 @@ services:
     command: -defaultIPv6 ""
     ports:
       - 8055:8055 # HTTP Management
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379

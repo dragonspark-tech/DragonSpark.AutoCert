@@ -17,10 +17,16 @@ public class AcmeCertificateSelector(ICertificateStore certificateStore, ILogger
     /// <param name="context">The connection context.</param>
     /// <param name="state">The state object (unused).</param>
     /// <returns>A <see cref="ValueTask{SslStreamCertificateContext}" /> representing the selected certificate.</returns>
-    public async ValueTask<SslStreamCertificateContext> SelectCertificateAsync(TlsHandshakeCallbackContext context,
+    public ValueTask<SslStreamCertificateContext> SelectCertificateAsync(TlsHandshakeCallbackContext context,
         CancellationToken cancellationToken)
     {
         var host = context.ClientHelloInfo.ServerName;
+        return SelectCertificateAsync(host, cancellationToken);
+    }
+
+    public async ValueTask<SslStreamCertificateContext> SelectCertificateAsync(string? host,
+        CancellationToken cancellationToken)
+    {
         if (string.IsNullOrEmpty(host))
         {
             logger.LogDebug("No SNI hostname provided in ClientHello.");

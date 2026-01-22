@@ -10,6 +10,7 @@ namespace DragonSpark.Acme.Services;
 public class AcmeDiagnosticsService(
     IOptions<AcmeOptions> options,
     IAccountStore accountStore,
+    IHttpClientFactory httpClientFactory,
     ILogger<AcmeDiagnosticsService> logger)
 {
     private readonly AcmeOptions _options = options.Value;
@@ -21,7 +22,7 @@ public class AcmeDiagnosticsService(
 
         try
         {
-            using var client = new HttpClient();
+            using var client = httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(5);
             var response = await client.GetAsync(_options.CertificateAuthority, cancellationToken);
             if (response.IsSuccessStatusCode)

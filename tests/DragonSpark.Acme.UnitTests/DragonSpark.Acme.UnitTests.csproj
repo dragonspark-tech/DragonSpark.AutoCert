@@ -17,6 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.2"/>
         <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.3.2"/>
         <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.2"/>
         <PackageReference Include="coverlet.collector" Version="6.0.4"/>
@@ -28,6 +29,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\DragonSpark.Acme\DragonSpark.Acme.csproj"/>
+        <ProjectReference Include="..\..\src\DragonSpark.AspNetCore.Acme\DragonSpark.AspNetCore.Acme.csproj"/>
     </ItemGroup>
 
 </Project>
