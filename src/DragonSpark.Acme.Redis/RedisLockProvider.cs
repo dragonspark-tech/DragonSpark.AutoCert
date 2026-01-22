@@ -10,7 +10,7 @@ namespace DragonSpark.Acme.Redis;
 /// <summary>
 ///     A lock provider that uses Redis via RedLock.net.
 /// </summary>
-public class RedisLockProvider : ILockProvider, IDisposable
+public sealed class RedisLockProvider : ILockProvider, IDisposable
 {
     private readonly ILogger<RedisLockProvider> _logger;
     private readonly RedLockFactory _redLockFactory;
@@ -19,9 +19,7 @@ public class RedisLockProvider : ILockProvider, IDisposable
     {
         _logger = logger;
 
-        var endpoints = redlinkEndPoints.Select(x => new RedLockEndPoint(
-            new DnsEndPoint(x.Split(':')[0], int.Parse(x.Split(':')[1])))
-        ).ToList();
+        var endpoints = redlinkEndPoints.Select(ParseEndPoint).ToList();
 
         _redLockFactory = RedLockFactory.Create(endpoints);
     }
@@ -55,7 +53,15 @@ public class RedisLockProvider : ILockProvider, IDisposable
         return new RedisLockWrapper(redLock, _logger, key);
     }
 
-    private class RedisLockWrapper(IRedLock redLock, ILogger logger, string key) : IDistributedLock
+    private static RedLockEndPoint ParseEndPoint(string endPoint)
+    {
+        var parts = endPoint.Split(':');
+        if (parts.Length != 2 || !int.TryParse(parts[1], out var port))
+            throw new ArgumentException($"Invalid Redis endpoint format: {endPoint}. Expected host:port");
+        return new RedLockEndPoint(new DnsEndPoint(parts[0], port));
+    }
+
+    private sealed class RedisLockWrapper(IRedLock redLock, ILogger logger, string key) : IDistributedLock
     {
         public string LockId => redLock.Resource;
 

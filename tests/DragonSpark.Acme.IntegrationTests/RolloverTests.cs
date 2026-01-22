@@ -45,6 +45,7 @@ public class RolloverTests
 
         services.AddSingleton<ILockProvider, FileSystemLockProvider>();
 
+        services.AddSingleton<AcmeServiceDependencies>();
         services.AddSingleton<AcmeService>();
 
         var provider = services.BuildServiceProvider();
@@ -62,8 +63,9 @@ public class RolloverTests
         }
         catch
         {
-            // Ignore failure to validate (Challenge will fail as we have no http server running here for this specific test)
-            // We just want the account created.
+            // Ignore failure to validate. We expect this to fail because we are in a test environment
+            // without a real DNS/HTTP challenge responder. We only care that the account was created
+            // as part of the order process.
         }
 
         var key1 = await accountStore.LoadAccountKeyAsync(TestContext.Current.CancellationToken);
@@ -82,14 +84,14 @@ public class RolloverTests
     {
         private string? _key;
 
-        public Task<string?> LoadAccountKeyAsync(CancellationToken token)
+        public Task<string?> LoadAccountKeyAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult(_key);
         }
 
-        public Task SaveAccountKeyAsync(string accountKeyPem, CancellationToken token)
+        public Task SaveAccountKeyAsync(string pemKey, CancellationToken cancellationToken = default)
         {
-            _key = accountKeyPem;
+            _key = pemKey;
             return Task.CompletedTask;
         }
     }

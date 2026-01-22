@@ -73,6 +73,9 @@ public class ConnectivityTests
 
         services.AddSingleton<ILockProvider, FileSystemLockProvider>();
 
+        services.AddSingleton<ILockProvider, FileSystemLockProvider>();
+
+        services.AddSingleton<AcmeServiceDependencies>();
         services.AddSingleton<AcmeService>();
 
         var provider = services.BuildServiceProvider();

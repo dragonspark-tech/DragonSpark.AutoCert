@@ -27,8 +27,6 @@ public class LayeredCertificateStoreTests
     [Fact]
     public async Task GetCertificateAsync_ReturnsFromCache_IfPresent()
     {
-        var cert = CreateDummyCertificate();
-
         _cacheMock.Setup(x => x.GetCertificateAsync("example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateDummyCertificate());
 

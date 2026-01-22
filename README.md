@@ -1,10 +1,10 @@
 # DragonSpark.Acme
 
-A modern, lightweight, and extensible ACME (Let's Encrypt) client for ASP.NET Core 10+.
+A modern, lightweight, and extensible ACME (Let's Encrypt) client for .NET 10+.
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/dragonspark-tech/acme/build.yml?branch=main)
+![Build Status](https://img.shields.io/github/actions/workflow/status/dragonspark-tech/DragonSpark.Acme/build.yml?branch=main)
 ![Nuget](https://img.shields.io/nuget/v/DragonSpark.Acme)
-![License](https://img.shields.io/github/license/dragonspark-tech/acme)
+![License](https://img.shields.io/github/license/dragonspark-tech/DragonSpark.Acme)
 
 ## Features
 

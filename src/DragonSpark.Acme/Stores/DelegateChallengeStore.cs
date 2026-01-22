@@ -14,9 +14,9 @@ public class DelegateChallengeStore(
         return loadFunc(token, cancellationToken);
     }
 
-    public Task SaveChallengeAsync(string token, string keyAuth, int ttl,
+    public Task SaveChallengeAsync(string token, string response, int ttl = 300,
         CancellationToken cancellationToken = default)
     {
-        return saveFunc(token, keyAuth, ttl, cancellationToken);
+        return saveFunc(token, response, ttl, cancellationToken);
     }
 }

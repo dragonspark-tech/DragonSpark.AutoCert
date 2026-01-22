@@ -31,6 +31,8 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<ICertificateStore, FileSystemCertificateStore>();
         services.TryAddSingleton<IChallengeStore, MemoryChallengeStore>();
         services.TryAddSingleton<IAccountStore, FileSystemAccountStore>();
+        services.TryAddSingleton<IAccountStore, FileSystemAccountStore>();
+        services.TryAddSingleton<AcmeServiceDependencies>();
         services.TryAddSingleton<IAcmeService, AcmeService>();
         services.TryAddSingleton<AcmeDiagnosticsService>();
 

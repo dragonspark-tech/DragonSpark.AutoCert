@@ -17,7 +17,9 @@ public class Http01ChallengeHandler(
 {
     private readonly AcmeOptions _options = options.Value;
 
-    public string ChallengeType => ChallengeTypes.Http01;
+    public static string ChallengeType => ChallengeTypes.Http01;
+
+    string IChallengeHandler.ChallengeType => ChallengeType;
 
     public async Task<bool> HandleChallengeAsync(IAuthorizationContext authorizationContext,
         CancellationToken cancellationToken)

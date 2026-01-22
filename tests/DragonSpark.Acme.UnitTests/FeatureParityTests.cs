@@ -59,6 +59,7 @@ public class FeatureParityTests
         services.AddSingleton(new Mock<IAccountStore>().Object);
         services.AddSingleton(new Mock<ILockProvider>().Object);
         services.AddSingleton(hookMock.Object);
+        services.AddSingleton<AcmeServiceDependencies>();
         services.AddSingleton<AcmeService>();
 
         var provider = services.BuildServiceProvider();
@@ -85,6 +86,7 @@ public class FeatureParityTests
         services.AddSingleton(new Mock<IAccountStore>().Object);
         services.AddSingleton(new Mock<ILockProvider>().Object);
         services.AddSingleton(new Mock<ICertificateLifecycle>().Object);
+        services.AddSingleton<AcmeServiceDependencies>();
         services.AddSingleton<AcmeService>();
 
         var provider = services.BuildServiceProvider();

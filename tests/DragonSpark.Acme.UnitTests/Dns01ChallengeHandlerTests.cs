@@ -27,7 +27,7 @@ public class Dns01ChallengeHandlerTests
     [Fact]
     public void ChallengeType_IsDns01()
     {
-        Assert.Equal(ChallengeTypes.Dns01, _handler.ChallengeType);
+        Assert.Equal(ChallengeTypes.Dns01, Dns01ChallengeHandler.ChallengeType);
     }
 
     [Fact]

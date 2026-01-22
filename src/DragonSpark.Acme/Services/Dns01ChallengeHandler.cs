@@ -20,7 +20,9 @@ public class Dns01ChallengeHandler(
 {
     private readonly AcmeOptions _options = options.Value;
 
-    public string ChallengeType => ChallengeTypes.Dns01;
+    public static string ChallengeType => ChallengeTypes.Dns01;
+
+    string IChallengeHandler.ChallengeType => ChallengeType;
 
     public async Task<bool> HandleChallengeAsync(IAuthorizationContext authorizationContext,
         CancellationToken cancellationToken)
