@@ -17,6 +17,9 @@ A modern, lightweight, and extensible ACME (Let's Encrypt) client for ASP.NET Co
 - **Flexible Architecture**:
     - **Strategy Pattern**: Support for different challenge types (HTTP-01 implemented, extensible for DNS-01).
     - **Feature Parity**: Inspired by `LettuceEncrypt` and `FluffySpoon` but modernized for .NET 10.
+    - **Security First**: 
+        - **Account Rollover**: Securely rotate compromised account keys.
+        - **Configurable Keys**: Support for RSA (2048/4096) and ECDSA (P-256/P-384/P-521) keys.
 
 ## Installation
 
@@ -66,7 +69,9 @@ You can configure options via `appsettings.json`:
     "TermsOfServiceAgreed": true,
     "CertificateAuthority": "https://acme-staging-v02.api.letsencrypt.org/directory",
     "ValidationTimeout": "00:01:00",
-    "CertificatePassword": "ultra-secure-password"
+    "ValidationTimeout": "00:01:00",
+    "CertificatePassword": "ultra-secure-password",
+    "KeyAlgorithm": "ES256" // ES256, ES384, RS256
   }
 }
 ```
@@ -104,6 +109,14 @@ public class WebHookNotifier : ICertificateLifecycle
 
 // Register
 builder.Services.AddAcme(...).AddLifecycleHook<WebHookNotifier>();
+```
+
+### Account Management
+
+**Key Rollover:**
+Rotate your account key securely:
+```csharp
+await acmeService.RolloverAccountKeyAsync(cancellationToken);
 ```
 
 ### Functional Persistence

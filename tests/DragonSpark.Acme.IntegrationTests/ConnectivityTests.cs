@@ -65,6 +65,12 @@ public class ConnectivityTests
         services.AddSingleton<IChallengeHandler>(sp =>
             ActivatorUtilities.CreateInstance<Http01ChallengeHandler>(sp));
 
+        services.AddHttpClient("Acme")
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+            });
+
         services.AddSingleton<AcmeService>();
 
         var provider = services.BuildServiceProvider();

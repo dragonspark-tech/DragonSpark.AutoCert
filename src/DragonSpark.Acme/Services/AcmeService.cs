@@ -1,5 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 using Certes;
+using Certes.Acme;
 using Certes.Acme.Resource;
 using DragonSpark.Acme.Abstractions;
 using DragonSpark.Acme.Helpers;
@@ -17,6 +18,7 @@ public class AcmeService(
     IAccountStore accountStore,
     IEnumerable<ICertificateLifecycle> lifecycleHooks,
     IEnumerable<IChallengeHandler> challengeHandlers,
+    IHttpClientFactory httpClientFactory,
     ILogger<AcmeService> logger) : IAcmeService
 {
     private readonly AcmeOptions _options = options.Value;
@@ -37,12 +39,12 @@ public class AcmeService(
         {
             logger.LogInformation("Restoring existing ACME account.");
             var accountKey = KeyFactory.FromPem(accountKeyPem);
-            acme = new AcmeContext(_options.CertificateAuthority, accountKey);
+            acme = CreateContext(accountKey);
             await acme.Account();
         }
         else
         {
-            acme = new AcmeContext(_options.CertificateAuthority);
+            acme = CreateContext();
 
             if (!string.IsNullOrEmpty(_options.AccountKeyId) && !string.IsNullOrEmpty(_options.AccountHmacKey))
             {
@@ -105,7 +107,7 @@ public class AcmeService(
 
         logger.LogInformation("Finalizing order...");
 
-        var privateKey = KeyFactory.NewKey(KeyAlgorithm.ES256);
+        var privateKey = KeyFactory.NewKey(GetKeyAlgorithm());
         var certChain = await order.Generate(new CsrInfo
         {
             CountryName = _options.CsrInfo.CountryName,
@@ -170,5 +172,48 @@ public class AcmeService(
 
         logger.LogInformation("Certificate revoked. Deleting from store.");
         await certificateStore.DeleteCertificateAsync(domain, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task RolloverAccountKeyAsync(CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Starting account key rollover.");
+
+        var accountKeyPem = await accountStore.LoadAccountKeyAsync(cancellationToken);
+        if (string.IsNullOrEmpty(accountKeyPem))
+        {
+            logger.LogError("Cannot rollover key: No account key found.");
+            throw new InvalidOperationException("No ACME account found.");
+        }
+
+        var currentKey = KeyFactory.FromPem(accountKeyPem);
+        var acme = CreateContext(currentKey);
+        await acme.Account();
+
+        var newKey = KeyFactory.NewKey(GetKeyAlgorithm());
+
+        logger.LogInformation("Requesting key change to new key.");
+        await acme.ChangeKey(newKey);
+
+        logger.LogInformation("Key change successful. Saving new account key.");
+        await accountStore.SaveAccountKeyAsync(newKey.ToPem(), cancellationToken);
+    }
+
+    private IAcmeContext CreateContext(IKey? accountKey = null)
+    {
+        var httpClient = httpClientFactory.CreateClient("Acme");
+        var acmeClient = new AcmeHttpClient(_options.CertificateAuthority, httpClient);
+        return new AcmeContext(_options.CertificateAuthority, accountKey, acmeClient);
+    }
+
+    private KeyAlgorithm GetKeyAlgorithm()
+    {
+        return _options.KeyAlgorithm switch
+        {
+            KeyAlgorithmType.ES256 => KeyAlgorithm.ES256,
+            KeyAlgorithmType.ES384 => KeyAlgorithm.ES384,
+            KeyAlgorithmType.RS256 => KeyAlgorithm.RS256,
+            _ => KeyAlgorithm.ES256
+        };
     }
 }

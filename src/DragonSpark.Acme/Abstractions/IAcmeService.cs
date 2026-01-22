@@ -16,11 +16,17 @@ public interface IAcmeService
     Task OrderCertificateAsync(IEnumerable<string> domains, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///     Revokes the certificate for the specified domain.
+    ///     Revokes an existing certificate.
     /// </summary>
-    /// <param name="domain">The domain to revoke the certificate for.</param>
+    /// <param name="domain">The domain of the certificate to revoke.</param>
     /// <param name="reason">The reason for revocation.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     Task RevokeCertificateAsync(string domain, RevocationReason reason = RevocationReason.Unspecified,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///     Rotates the current ACME account key with a new one.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task RolloverAccountKeyAsync(CancellationToken cancellationToken = default);
 }

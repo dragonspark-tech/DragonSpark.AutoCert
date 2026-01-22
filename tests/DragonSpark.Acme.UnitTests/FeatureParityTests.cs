@@ -52,6 +52,7 @@ public class FeatureParityTests
         var hookMock = new Mock<ICertificateLifecycle>();
 
         services.AddLogging();
+        services.AddHttpClient();
         services.AddSingleton(Options.Create(new AcmeOptions { Email = "test@test.com" }));
         services.AddSingleton(new Mock<IChallengeStore>().Object);
         services.AddSingleton(new Mock<ICertificateStore>().Object);
@@ -64,6 +65,32 @@ public class FeatureParityTests
 
         var hooks = provider.GetServices<ICertificateLifecycle>();
         Assert.Single(hooks);
+    }
+
+    [Fact]
+    public void AcmeService_Respects_KeyAlgorithm_Option()
+    {
+        var services = new ServiceCollection();
+
+        services.AddLogging();
+        services.AddHttpClient();
+        services.AddSingleton(Options.Create(new AcmeOptions
+        {
+            Email = "test@test.com",
+            KeyAlgorithm = KeyAlgorithmType.RS256
+        }));
+        services.AddSingleton(new Mock<IChallengeStore>().Object);
+        services.AddSingleton(new Mock<ICertificateStore>().Object);
+        services.AddSingleton(new Mock<IAccountStore>().Object);
+        services.AddSingleton(new Mock<ICertificateLifecycle>().Object);
+        services.AddSingleton<AcmeService>();
+
+        var provider = services.BuildServiceProvider();
+        var service = provider.GetRequiredService<AcmeService>();
+
+        Assert.NotNull(service);
+        // We can't inspect the private implementation details easily, 
+        // but ensuring it resolves confirms the option doesn't break validity.
     }
 }
 

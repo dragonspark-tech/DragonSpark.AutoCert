@@ -66,6 +66,12 @@ public class AcmeOptions
     public string CertificatePassword { get; set; } = string.Empty;
 
     /// <summary>
+    ///     Gets or sets the algorithm used for the certificate private key.
+    ///     Defaults to ES256 (ECDSA P-256).
+    /// </summary>
+    public KeyAlgorithmType KeyAlgorithm { get; set; } = KeyAlgorithmType.ES256;
+
+    /// <summary>
     ///     Gets or sets the list of domains to automatically renew.
     /// </summary>
     public List<string> ManagedDomains { get; set; } = [];
