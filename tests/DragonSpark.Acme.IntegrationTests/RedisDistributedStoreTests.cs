@@ -15,14 +15,10 @@ public class RedisDistributedStoreTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        // Ensure Redis is reachable or skip tests?
-        // In a real CI environment, we'd ensure the service is up. 
-        // For local dev, we assume docker-compose up is run.
         var opts = Options.Create(new RedisCacheOptions { Configuration = RedisConnectionString });
         _cache = new RedisCache(opts);
         _options = Options.Create(new AcmeOptions { CertificatePassword = "password" });
-
-        // Simple check to see if we can connect
+        
         try
         {
             await _cache.SetStringAsync("ping", "pong");
@@ -30,12 +26,12 @@ public class RedisDistributedStoreTests : IAsyncLifetime
         catch
         {
             // If we can't connect, tests will fail. 
-            // We could use Skip.If behavior if we wanted to be essentialy safer but let's fail fast.
         }
     }
 
     public ValueTask DisposeAsync()
     {
+        GC.SuppressFinalize(this);
         return ValueTask.CompletedTask;
     }
 
@@ -53,8 +49,7 @@ public class RedisDistributedStoreTests : IAsyncLifetime
 
         Assert.NotNull(loadedCert);
         Assert.Equal(cert.Thumbprint, loadedCert.Thumbprint);
-
-        // Cleanup
+        
         await store.DeleteCertificateAsync(domain, CancellationToken.None);
     }
 
@@ -63,7 +58,7 @@ public class RedisDistributedStoreTests : IAsyncLifetime
     {
         var store = new DistributedChallengeStore(_cache);
         var token = $"token-{Guid.NewGuid()}";
-        var response = "response-redis";
+        const string response = "response-redis";
 
         await store.SaveChallengeAsync(token, response, 300, CancellationToken.None);
         var loadedResponse = await store.GetChallengeAsync(token, CancellationToken.None);

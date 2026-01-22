@@ -15,24 +15,23 @@ public class RolloverTests
     [Fact]
     public async Task CanRolloverAccountKey()
     {
-        // Setup
         var services = new ServiceCollection();
-        var accountStore = new MemoryAccountStore(); // Use memory store to track changes
+        var accountStore = new MemoryAccountStore();
 
         services.AddSingleton(Options.Create(new AcmeOptions
         {
             CertificateAuthority = new Uri(PebbleDirectory),
             Email = "rollover-test@example.com",
             TermsOfServiceAgreed = true,
-            KeyAlgorithm = KeyAlgorithmType.ES256 // Start with ES256
+            KeyAlgorithm = KeyAlgorithmType.ES256
         }));
 
         services.AddLogging(l => l.AddConsole());
         services.AddSingleton<ICertificateStore>(
-            new DelegateCertificateStore((d, t) => Task.FromResult<X509Certificate2?>(null),
-                (d, c, t) => Task.CompletedTask));
-        services.AddSingleton<IChallengeStore>(new DelegateChallengeStore((t, tok) => Task.FromResult<string?>(null),
-            (t, k, ttl, tok) => Task.CompletedTask));
+            new DelegateCertificateStore((_, _) => Task.FromResult<X509Certificate2?>(null),
+                (_, _, _) => Task.CompletedTask));
+        services.AddSingleton<IChallengeStore>(new DelegateChallengeStore((_, _) => Task.FromResult<string?>(null),
+            (_, _, _, _) => Task.CompletedTask));
 
         services.AddSingleton<IAccountStore>(accountStore);
         services.AddSingleton<IChallengeHandler>(sp => ActivatorUtilities.CreateInstance<Http01ChallengeHandler>(sp));
@@ -40,7 +39,7 @@ public class RolloverTests
         services.AddHttpClient("Acme")
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
             });
 
         services.AddSingleton<ILockProvider, FileSystemLockProvider>();
@@ -50,28 +49,21 @@ public class RolloverTests
 
         var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<AcmeService>();
-
-        // 1. Order a cert (or just force account creation implicitly via some method? AcmeService creates account on Order)
-        // We need to trigger account creation. OrderCertificateAsync does that.
-        // But it requires a domain.
-
-        // Let's manually trigger account creation via reflection or just use OrderCertificate.
-        // We'll trust OrderCertificate works.
+        
         try
         {
-            await service.OrderCertificateAsync(new[] { "rollover.localhost" }, TestContext.Current.CancellationToken);
+            await service.OrderCertificateAsync(["rollover.localhost"], TestContext.Current.CancellationToken);
         }
         catch
         {
-            // Ignore failure to validate. We expect this to fail because we are in a test environment
+            // Ignore the failure to validate. We expect this to fail because we are in a test environment
             // without a real DNS/HTTP challenge responder. We only care that the account was created
             // as part of the order process.
         }
 
         var key1 = await accountStore.LoadAccountKeyAsync(TestContext.Current.CancellationToken);
         Assert.NotNull(key1);
-
-        // 2. Perform Rollover
+        
         await service.RolloverAccountKeyAsync(TestContext.Current.CancellationToken);
 
         var key2 = await accountStore.LoadAccountKeyAsync(TestContext.Current.CancellationToken);

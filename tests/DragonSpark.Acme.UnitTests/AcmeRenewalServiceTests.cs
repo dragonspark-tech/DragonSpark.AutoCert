@@ -14,7 +14,6 @@ public class AcmeRenewalServiceTests
     private readonly Mock<IAcmeService> _acmeServiceMock;
     private readonly Mock<ICertificateStore> _certificateStoreMock;
     private readonly AcmeRenewalService _service;
-    private readonly IServiceProvider _serviceProvider;
 
     public AcmeRenewalServiceTests()
     {
@@ -26,18 +25,18 @@ public class AcmeRenewalServiceTests
         services.AddSingleton(_acmeServiceMock.Object);
         services.AddSingleton(_certificateStoreMock.Object);
         services.AddSingleton(hooksMock.Object);
-        _serviceProvider = services.BuildServiceProvider();
+        IServiceProvider serviceProvider = services.BuildServiceProvider();
 
         var options = Options.Create(new AcmeOptions
         {
-            ManagedDomains = new List<string> { "example.com" },
+            ManagedDomains = ["example.com"],
             RenewalThreshold = TimeSpan.FromDays(30),
             RenewalCheckInterval = TimeSpan.FromMilliseconds(50) // Fast for testing
         });
 
         var loggerMock = new Mock<ILogger<AcmeRenewalService>>();
 
-        _service = new AcmeRenewalService(_serviceProvider, options, loggerMock.Object);
+        _service = new AcmeRenewalService(serviceProvider, options, loggerMock.Object);
     }
 
     [Fact]
@@ -58,6 +57,7 @@ public class AcmeRenewalServiceTests
         }
         catch (TaskCanceledException)
         {
+            // Task cancellation is expected here
         }
 
         // Assert
@@ -78,7 +78,7 @@ public class AcmeRenewalServiceTests
         _certificateStoreMock.Setup(x => x.GetCertificateAsync("example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 new X509Certificate2(
-                    expiringCert)); // Clone to avoid disposal issues if mocked directly returns disposed
+                    expiringCert));
 
         // Act
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -91,6 +91,7 @@ public class AcmeRenewalServiceTests
         }
         catch
         {
+            // Task cancellation is expected here
         }
 
         // Assert
@@ -123,6 +124,7 @@ public class AcmeRenewalServiceTests
         }
         catch
         {
+            // Task cancellation is expected here
         }
 
         // Assert

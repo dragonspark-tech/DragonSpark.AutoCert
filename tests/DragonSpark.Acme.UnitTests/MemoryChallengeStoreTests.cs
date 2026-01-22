@@ -8,8 +8,8 @@ public class MemoryChallengeStoreTests
     public async Task SaveAndGet_Challenge()
     {
         var store = new MemoryChallengeStore();
-        var token = "token123";
-        var response = "response123";
+        const string token = "token123";
+        const string response = "response123";
 
         await store.SaveChallengeAsync(token, response, cancellationToken: TestContext.Current.CancellationToken);
         var result = await store.GetChallengeAsync(token, TestContext.Current.CancellationToken);

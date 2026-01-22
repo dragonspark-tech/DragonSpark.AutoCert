@@ -17,16 +17,15 @@ public class FeatureParityTests
         var saveCalled = false;
 
         var services = new ServiceCollection();
-        // Mimic builder
         var builder = new MockBuilder(services);
 
         builder.AddCertificateStore(
-            (domain, token) =>
+            (_, _) =>
             {
                 loadCalled = true;
                 return Task.FromResult<X509Certificate2?>(null);
             },
-            (domain, cert, token) =>
+            (_, _, _) =>
             {
                 saveCalled = true;
                 return Task.CompletedTask;
@@ -36,6 +35,7 @@ public class FeatureParityTests
         var store = provider.GetRequiredService<ICertificateStore>();
 
         await store.GetCertificateAsync("example.com", TestContext.Current.CancellationToken);
+        
 #pragma warning disable SYSLIB0057
         await store.SaveCertificateAsync("example.com", new X509Certificate2(Array.Empty<byte>()),
             TestContext.Current.CancellationToken);
@@ -93,8 +93,6 @@ public class FeatureParityTests
         var service = provider.GetRequiredService<AcmeService>();
 
         Assert.NotNull(service);
-        // We can't inspect the private implementation details easily, 
-        // but ensuring it resolves confirms the option doesn't break validity.
     }
 }
 

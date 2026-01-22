@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace DragonSpark.Acme.UnitTests;
 
-public class FileSystemStoreTests : IDisposable
+public sealed class FileSystemStoreTests : IDisposable
 {
     private readonly IOptions<AcmeOptions> _options;
     private readonly string _tempPath;
@@ -28,7 +28,7 @@ public class FileSystemStoreTests : IDisposable
     {
         // Arrange
         var store = new FileSystemAccountStore(_options);
-        var key = "test-account-key";
+        const string key = "test-account-key";
 
         // Act
         await store.SaveAccountKeyAsync(key, CancellationToken.None);
@@ -44,7 +44,7 @@ public class FileSystemStoreTests : IDisposable
     {
         // Arrange
         var store = new FileSystemCertificateStore(_options);
-        var domain = "fs-test.com";
+        const string domain = "fs-test.com";
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={domain}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         using var cert = request.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));

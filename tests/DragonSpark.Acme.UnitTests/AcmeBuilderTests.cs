@@ -21,34 +21,33 @@ public class AcmeBuilderTests
     [Fact]
     public void AddCertificateStore_RegistersDelegateStore()
     {
-        // Arrange
-        Func<string, CancellationToken, Task<X509Certificate2?>> load = (_, _) =>
-            Task.FromResult<X509Certificate2?>(null);
-        Func<string, X509Certificate2, CancellationToken, Task> save = (_, _, _) => Task.CompletedTask;
-
         // Act
-        _builderMock.Object.AddCertificateStore(load, save);
+        _builderMock.Object.AddCertificateStore(Load, Save);
 
         // Assert
         var descriptor = _services.FirstOrDefault(s => s.ServiceType == typeof(ICertificateStore));
         Assert.NotNull(descriptor);
         Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+        return;
+
+        Task Save(string s, X509Certificate2 x509Certificate2, CancellationToken cancellationToken) => Task.CompletedTask;
+        Task<X509Certificate2?> Load(string s, CancellationToken cancellationToken) => Task.FromResult<X509Certificate2?>(null);
     }
 
     [Fact]
     public void AddChallengeStore_RegistersDelegateStore()
     {
-        // Arrange
-        Func<string, CancellationToken, Task<string?>> load = (_, _) => Task.FromResult<string?>(null);
-        Func<string, string, int, CancellationToken, Task> save = (_, _, _, _) => Task.CompletedTask;
-
         // Act
-        _builderMock.Object.AddChallengeStore(load, save);
+        _builderMock.Object.AddChallengeStore(Load, Save);
 
         // Assert
         var descriptor = _services.FirstOrDefault(s => s.ServiceType == typeof(IChallengeStore));
         Assert.NotNull(descriptor);
         Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+        return;
+
+        Task Save(string s, string s1, int i, CancellationToken cancellationToken) => Task.CompletedTask;
+        Task<string?> Load(string s, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
     }
 
     [Fact]

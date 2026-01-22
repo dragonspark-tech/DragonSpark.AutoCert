@@ -10,35 +10,32 @@ public class DelegateStoreTests
     {
         // Arrange
         var invoked = false;
-        var domain = "test.com";
+        const string domain = "test.com";
 
-        Func<string, CancellationToken, Task<X509Certificate2?>> load = (_, _) =>
-            Task.FromResult<X509Certificate2?>(null);
-        Func<string, X509Certificate2, CancellationToken, Task> save = (_, _, _) => Task.CompletedTask;
-        Func<string, CancellationToken, Task> delete = (d, _) =>
-        {
-            if (d == domain) invoked = true;
-            return Task.CompletedTask;
-        };
-
-        var store = new DelegateCertificateStore(load, save, delete);
+        var store = new DelegateCertificateStore(Load, Save, Delete);
 
         // Act
         await store.DeleteCertificateAsync(domain, CancellationToken.None);
 
         // Assert
         Assert.True(invoked);
+        
+        return;
+        
+        Task<X509Certificate2?> Load(string s, CancellationToken cancellationToken) => Task.FromResult<X509Certificate2?>(null);
+        Task Save(string s, X509Certificate2 x509Certificate2, CancellationToken cancellationToken) => Task.CompletedTask;
+        Task Delete(string d, CancellationToken _)
+        {
+            if (d == domain) invoked = true;
+            return Task.CompletedTask;
+        }
     }
 
     [Fact]
     public async Task DeleteCertificateAsync_NullDelegate_DoesNotThrow()
     {
         // Arrange
-        Func<string, CancellationToken, Task<X509Certificate2?>> load = (_, _) =>
-            Task.FromResult<X509Certificate2?>(null);
-        Func<string, X509Certificate2, CancellationToken, Task> save = (_, _, _) => Task.CompletedTask;
-
-        var store = new DelegateCertificateStore(load, save);
+        var store = new DelegateCertificateStore(Load, Save);
 
         // Act & Assert
         try
@@ -49,5 +46,10 @@ public class DelegateStoreTests
         {
             Assert.Fail($"Should not throw, but threw {ex.GetType().Name}");
         }
+
+        return;
+        
+        Task<X509Certificate2?> Load(string s, CancellationToken cancellationToken) => Task.FromResult<X509Certificate2?>(null);
+        Task Save(string s, X509Certificate2 x509Certificate2, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

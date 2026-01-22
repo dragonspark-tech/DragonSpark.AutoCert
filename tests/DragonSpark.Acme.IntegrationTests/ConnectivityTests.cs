@@ -19,7 +19,7 @@ public class ConnectivityTests
     {
         var handler = new HttpClientHandler
         {
-            ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+            ServerCertificateCustomValidationCallback = (_, _, _, _) => true
         };
         var httpClient = new HttpClient(handler);
 
@@ -30,7 +30,7 @@ public class ConnectivityTests
         var acme = new AcmeContext(new Uri(PebbleDirectory), accountKey,
             new AcmeHttpClient(new Uri(PebbleDirectory), httpClient));
 
-        var account = await acme.NewAccount(new[] { "mailto:test@example.com" }, true);
+        var account = await acme.NewAccount(["mailto:test@example.com"], true);
         Assert.NotNull(account);
     }
 
@@ -50,13 +50,13 @@ public class ConnectivityTests
         services.AddLogging(l => l.AddConsole());
 
         services.AddSingleton<ICertificateStore>(new DelegateCertificateStore(
-            (d, t) => Task.FromResult<X509Certificate2?>(null),
-            (d, c, t) => Task.CompletedTask
+            (_, _) => Task.FromResult<X509Certificate2?>(null),
+            (_, _, _) => Task.CompletedTask
         ));
 
         services.AddSingleton<IChallengeStore>(new DelegateChallengeStore(
-            (t, tok) => Task.FromResult<string?>(null),
-            (t, k, ttl, tok) => Task.CompletedTask
+            (_, _) => Task.FromResult<string?>(null),
+            (_, _, _, _) => Task.CompletedTask
         ));
 
         services.AddSingleton<IAccountStore>(sp =>
@@ -68,7 +68,7 @@ public class ConnectivityTests
         services.AddHttpClient("Acme")
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
             });
 
         services.AddSingleton<ILockProvider, FileSystemLockProvider>();

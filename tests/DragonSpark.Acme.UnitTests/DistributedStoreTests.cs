@@ -24,7 +24,7 @@ public class DistributedStoreTests
     {
         // Arrange
         var store = new DistributedCertificateStore(_cache, _options);
-        var domain = "example.com";
+        const string domain = "example.com";
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={domain}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         using var cert = request.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
@@ -43,7 +43,7 @@ public class DistributedStoreTests
     {
         // Arrange
         var store = new DistributedCertificateStore(_cache, _options);
-        var domain = "example.com";
+        const string domain = "example.com";
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={domain}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         using var cert = request.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddDays(1));
@@ -62,8 +62,8 @@ public class DistributedStoreTests
     {
         // Arrange
         var store = new DistributedChallengeStore(_cache);
-        var token = "token123";
-        var response = "response456";
+        const string token = "token123";
+        const string response = "response456";
 
         // Act
         await store.SaveChallengeAsync(token, response, 300, CancellationToken.None);

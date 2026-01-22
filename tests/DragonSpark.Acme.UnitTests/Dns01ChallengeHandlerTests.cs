@@ -12,16 +12,14 @@ public class Dns01ChallengeHandlerTests
 {
     private readonly Mock<IDnsProvider> _dnsProviderMock;
     private readonly Dns01ChallengeHandler _handler;
-    private readonly Mock<ILogger<Dns01ChallengeHandler>> _loggerMock;
-    private readonly IOptions<AcmeOptions> _options;
 
     public Dns01ChallengeHandlerTests()
     {
         _dnsProviderMock = new Mock<IDnsProvider>();
-        _loggerMock = new Mock<ILogger<Dns01ChallengeHandler>>();
-        _options = Options.Create(new AcmeOptions { DnsPropagationDelay = TimeSpan.Zero }); // Zero delay for tests
+        var loggerMock = new Mock<ILogger<Dns01ChallengeHandler>>();
+        var options = Options.Create(new AcmeOptions { DnsPropagationDelay = TimeSpan.Zero }); // Zero delay for tests
 
-        _handler = new Dns01ChallengeHandler(_dnsProviderMock.Object, _options, _loggerMock.Object);
+        _handler = new Dns01ChallengeHandler(_dnsProviderMock.Object, options, loggerMock.Object);
     }
 
     [Fact]
@@ -44,15 +42,15 @@ public class Dns01ChallengeHandlerTests
         authzContextMock.Setup(m => m.Resource()).ReturnsAsync(authzResource);
 
         challengeContextMock.Setup(m => m.Type).Returns(ChallengeTypes.Dns01);
-        authzContextMock.Setup(m => m.Challenges()).ReturnsAsync(new[] { challengeContextMock.Object });
+        authzContextMock.Setup(m => m.Challenges()).ReturnsAsync([challengeContextMock.Object]);
 
         challengeContextMock.Setup(m => m.KeyAuthz).Returns("token.key");
 
         challengeContextMock.Setup(m => m.Validate()).ReturnsAsync(challengeResource);
-        // Setup polling to return valid
+
         challengeContextMock.SetupSequence(m => m.Resource())
-            .ReturnsAsync(challengeResource) // Initial
-            .ReturnsAsync(validChallenge); // After polling
+            .ReturnsAsync(challengeResource)
+            .ReturnsAsync(validChallenge);
 
         // Act
         var result = await _handler.HandleChallengeAsync(authzContextMock.Object, CancellationToken.None);
@@ -65,6 +63,7 @@ public class Dns01ChallengeHandlerTests
             m => m.CreateTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(),
                 It.IsAny<CancellationToken>()), Times.Once);
         challengeContextMock.Verify(m => m.Validate(), Times.Once);
+        
         _dnsProviderMock.Verify(
             m => m.DeleteTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(),
                 It.IsAny<CancellationToken>()), Times.Once);
@@ -84,7 +83,7 @@ public class Dns01ChallengeHandlerTests
         authzContextMock.Setup(m => m.Resource()).ReturnsAsync(authzResource);
 
         challengeContextMock.Setup(m => m.Type).Returns(ChallengeTypes.Dns01);
-        authzContextMock.Setup(m => m.Challenges()).ReturnsAsync(new[] { challengeContextMock.Object });
+        authzContextMock.Setup(m => m.Challenges()).ReturnsAsync([challengeContextMock.Object]);
 
         challengeContextMock.Setup(m => m.KeyAuthz).Returns("token.key");
 
@@ -96,7 +95,6 @@ public class Dns01ChallengeHandlerTests
         var result = await _handler.HandleChallengeAsync(authzContextMock.Object, CancellationToken.None);
 
         // Assert
-        // Should ignore wildcard and use root domain for record
         Assert.True(result);
         _dnsProviderMock.Verify(
             m => m.CreateTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(),

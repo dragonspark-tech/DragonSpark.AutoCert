@@ -9,16 +9,10 @@ namespace DragonSpark.Acme.UnitTests;
 
 public class AcmeCertificateSelectorTests
 {
-    private readonly Mock<ICertificateStore> _certificateStoreMock;
-    private readonly Mock<ILogger<AcmeCertificateSelector>> _loggerMock;
+    private readonly Mock<ICertificateStore> _certificateStoreMock = new();
+    private readonly Mock<ILogger<AcmeCertificateSelector>> _loggerMock = new();
 
-    public AcmeCertificateSelectorTests()
-    {
-        _certificateStoreMock = new Mock<ICertificateStore>();
-        _loggerMock = new Mock<ILogger<AcmeCertificateSelector>>();
-    }
-
-    private X509Certificate2 CreateTestCertificate(string subjectName)
+    private static X509Certificate2 CreateTestCertificate(string subjectName)
     {
         using var rsa = RSA.Create(2048);
         var request =
@@ -30,7 +24,7 @@ public class AcmeCertificateSelectorTests
     public async Task SelectCertificateAsync_ExactMatch_ReturnsCertificate()
     {
         // Arrange
-        var domain = "example.com";
+        const string domain = "example.com";
         var cert = CreateTestCertificate(domain);
         _certificateStoreMock.Setup(x => x.GetCertificateAsync(domain, It.IsAny<CancellationToken>()))
             .ReturnsAsync(cert);
@@ -49,8 +43,8 @@ public class AcmeCertificateSelectorTests
     public async Task SelectCertificateAsync_WildcardMatch_ReturnsCertificate()
     {
         // Arrange
-        var domain = "sub.example.com";
-        var wildcard = "*.example.com";
+        const string domain = "sub.example.com";
+        const string wildcard = "*.example.com";
         var cert = CreateTestCertificate(wildcard);
 
         _certificateStoreMock.Setup(x => x.GetCertificateAsync(domain, It.IsAny<CancellationToken>()))
@@ -73,7 +67,7 @@ public class AcmeCertificateSelectorTests
     public async Task SelectCertificateAsync_NoMatch_ReturnsNull()
     {
         // Arrange
-        var domain = "example.com";
+        const string domain = "example.com";
         _certificateStoreMock.Setup(x => x.GetCertificateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((X509Certificate2?)null);
 

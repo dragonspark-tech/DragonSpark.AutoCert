@@ -5,23 +5,16 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
+using static Moq.It;
 
 namespace DragonSpark.Acme.UnitTests;
 
 public class AcmeDiagnosticsServiceTests
 {
-    private readonly Mock<IAccountStore> _accountStoreMock;
-    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
-    private readonly Mock<ILogger<AcmeDiagnosticsService>> _loggerMock;
-    private readonly IOptions<AcmeOptions> _options;
-
-    public AcmeDiagnosticsServiceTests()
-    {
-        _accountStoreMock = new Mock<IAccountStore>();
-        _httpClientFactoryMock = new Mock<IHttpClientFactory>();
-        _loggerMock = new Mock<ILogger<AcmeDiagnosticsService>>();
-        _options = Options.Create(new AcmeOptions { CertificateAuthority = new Uri("http://localhost:14000/dir") });
-    }
+    private readonly Mock<IAccountStore> _accountStoreMock = new();
+    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
+    private readonly Mock<ILogger<AcmeDiagnosticsService>> _loggerMock = new();
+    private readonly IOptions<AcmeOptions> _options = Options.Create(new AcmeOptions { CertificateAuthority = new Uri("http://localhost:14000/dir") });
 
     [Fact]
     public async Task ValidateEnvironment_AllChecksPass_ReturnsTrue()
@@ -37,9 +30,9 @@ public class AcmeDiagnosticsServiceTests
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
 
         var client = new HttpClient(handlerMock.Object);
-        _httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
+        _httpClientFactoryMock.Setup(x => x.CreateClient(IsAny<string>())).Returns(client);
 
-        _accountStoreMock.Setup(x => x.LoadAccountKeyAsync(It.IsAny<CancellationToken>()))
+        _accountStoreMock.Setup(x => x.LoadAccountKeyAsync(IsAny<CancellationToken>()))
             .ReturnsAsync("some-key");
 
         var service = new AcmeDiagnosticsService(_options, _accountStoreMock.Object, _httpClientFactoryMock.Object,
@@ -49,13 +42,15 @@ public class AcmeDiagnosticsServiceTests
         var result = await service.ValidateEnvironmentAsync(CancellationToken.None);
 
         // Assert
+#pragma warning disable CA1873
         Assert.True(result);
         _loggerMock.Verify(x => x.Log(
             LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Connectivity Check: PASSED")),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.AtLeastOnce);
+            IsAny<EventId>(),
+            Is<IsAnyType>((v, t) => v.ToString()!.Contains("Connectivity Check: PASSED")),
+            IsAny<Exception>(),
+            IsAny<Func<IsAnyType, Exception?, string>>()), Times.AtLeastOnce);
+#pragma warning restore CA1873
     }
 
     [Fact]
@@ -72,7 +67,7 @@ public class AcmeDiagnosticsServiceTests
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
 
         var client = new HttpClient(handlerMock.Object);
-        _httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
+        _httpClientFactoryMock.Setup(x => x.CreateClient(IsAny<string>())).Returns(client);
 
         var service = new AcmeDiagnosticsService(_options, _accountStoreMock.Object, _httpClientFactoryMock.Object,
             _loggerMock.Object);
@@ -98,9 +93,9 @@ public class AcmeDiagnosticsServiceTests
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
 
         var client = new HttpClient(handlerMock.Object);
-        _httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
+        _httpClientFactoryMock.Setup(x => x.CreateClient(IsAny<string>())).Returns(client);
 
-        _accountStoreMock.Setup(x => x.LoadAccountKeyAsync(It.IsAny<CancellationToken>()))
+        _accountStoreMock.Setup(x => x.LoadAccountKeyAsync(IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Store error"));
 
         var service = new AcmeDiagnosticsService(_options, _accountStoreMock.Object, _httpClientFactoryMock.Object,
