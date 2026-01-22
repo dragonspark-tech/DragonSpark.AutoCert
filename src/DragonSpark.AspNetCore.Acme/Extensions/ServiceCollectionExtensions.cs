@@ -41,6 +41,9 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<ILockProvider, FileSystemLockProvider>();
 
+        services.AddHttpClient("Acme")
+            .AddStandardResilienceHandler();
+
         return new AcmeBuilder(services);
     }
 }
