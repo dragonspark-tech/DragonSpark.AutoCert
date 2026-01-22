@@ -14,7 +14,9 @@ public class AcmeDiagnosticsServiceTests
     private readonly Mock<IAccountStore> _accountStoreMock = new();
     private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
     private readonly Mock<ILogger<AcmeDiagnosticsService>> _loggerMock = new();
-    private readonly IOptions<AcmeOptions> _options = Options.Create(new AcmeOptions { CertificateAuthority = new Uri("http://localhost:14000/dir") });
+
+    private readonly IOptions<AcmeOptions> _options = Options.Create(new AcmeOptions
+        { CertificateAuthority = new Uri("http://localhost:14000/dir") });
 
     [Fact]
     public async Task ValidateEnvironment_AllChecksPass_ReturnsTrue()

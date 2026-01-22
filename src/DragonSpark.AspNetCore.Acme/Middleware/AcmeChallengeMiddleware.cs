@@ -8,7 +8,7 @@ namespace DragonSpark.AspNetCore.Acme.Middleware;
 ///     Middleware to handle ACME challenge validation requests.
 ///     Serves responses from the <see cref="IChallengeStore" />.
 /// </summary>
-public class AcmeChallengeMiddleware(
+public partial class AcmeChallengeMiddleware(
     RequestDelegate next,
     IChallengeStore challengeStore,
     ILogger<AcmeChallengeMiddleware> logger)
@@ -25,28 +25,35 @@ public class AcmeChallengeMiddleware(
         if (path.StartsWithSegments(Prefix, out var remaining) || path.Value?.StartsWith(Prefix) == true)
         {
             var token = path.Value?.Substring(Prefix.Length);
-            // Handle case where specific segment matching is tricky or trailing slashes
             if (string.IsNullOrEmpty(token))
-                // Verify if StartsWithSegments handled it (it puts remaining in 'remaining')
                 token = remaining.Value?.TrimStart('/');
 
             if (!string.IsNullOrEmpty(token))
             {
-                logger.LogDebug("Received ACME challenge request for token: {Token}", token);
+                LogReceivedAcmeChallengeRequestForToken(logger, token);
                 var response = await challengeStore.GetChallengeAsync(token, context.RequestAborted);
                 if (response != null)
                 {
-                    logger.LogInformation("Serving ACME challenge response for token: {Token}", token);
+                    LogServingAcmeChallengeResponseForToken(logger, token);
                     context.Response.ContentType = "application/octet-stream";
                     context.Response.ContentLength = response.Length;
                     await context.Response.WriteAsync(response, context.RequestAborted);
                     return;
                 }
 
-                logger.LogWarning("ACME challenge token not found: {Token}", token);
+                LogAcmeChallengeTokenNotFound(logger, token);
             }
         }
 
         await next(context);
     }
+
+    [LoggerMessage(LogLevel.Debug, "Received ACME challenge request for token: {token}")]
+    static partial void LogReceivedAcmeChallengeRequestForToken(ILogger<AcmeChallengeMiddleware> logger, string token);
+
+    [LoggerMessage(LogLevel.Information, "Serving ACME challenge response for token: {token}")]
+    static partial void LogServingAcmeChallengeResponseForToken(ILogger<AcmeChallengeMiddleware> logger, string token);
+
+    [LoggerMessage(LogLevel.Warning, "ACME challenge token not found: {token}")]
+    static partial void LogAcmeChallengeTokenNotFound(ILogger<AcmeChallengeMiddleware> logger, string token);
 }

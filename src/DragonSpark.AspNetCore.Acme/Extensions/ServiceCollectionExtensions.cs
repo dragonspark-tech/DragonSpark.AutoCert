@@ -38,9 +38,7 @@ public static class ServiceCollectionExtensions
 
         services.AddHostedService<AcmeRenewalService>();
 
-        // Challenge Handlers
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IChallengeHandler, Http01ChallengeHandler>());
-
 
         services.TryAddSingleton<ILockProvider, FileSystemLockProvider>();
 

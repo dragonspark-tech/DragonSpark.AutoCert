@@ -13,7 +13,7 @@ namespace DragonSpark.Acme.Services;
 /// <summary>
 ///     Handles the ACME dns-01 challenge.
 /// </summary>
-public class Dns01ChallengeHandler(
+public partial class Dns01ChallengeHandler(
     IDnsProvider dnsProvider,
     IOptions<AcmeOptions> options,
     ILogger<Dns01ChallengeHandler> logger) : IChallengeHandler
@@ -30,44 +30,43 @@ public class Dns01ChallengeHandler(
         var challenge = await authorizationContext.Dns();
         var domain = (await authorizationContext.Resource()).Identifier.Value;
 
-        // Wildcard domains (*.example.com) are authorized as "example.com" but the TXT record is on "_acme-challenge.example.com"
         var recordName = "_acme-challenge." + domain.TrimStart('*').TrimStart('.');
 
-        logger.LogInformation("Handling DNS-01 challenge for {Domain}. Record: {RecordName}", domain, recordName);
+        LogHandlingDnsChallengeForDomain(logger, domain, recordName);
 
         var keyAuth = challenge.KeyAuthz;
         var txtValue = ComputeDnsValue(keyAuth);
 
         try
         {
-            logger.LogInformation("Creating TXT record {RecordName} = {Value}. Waiting {Delay}s for propagation...",
-                recordName, txtValue, _options.DnsPropagationDelay.TotalSeconds);
+            LogCreatingTxtRecordWaitingForPropagation(logger, recordName, txtValue,
+                _options.DnsPropagationDelay.TotalSeconds);
             await dnsProvider.CreateTxtRecordAsync(recordName, txtValue, cancellationToken);
 
+            // ReSharper disable once ExplicitCallerInfoArgument
             using (var activity = AcmeDiagnostics.ActivitySource.StartActivity("Dns01.WaitForPropagation"))
             {
                 activity?.SetTag("acme.dns.delay", _options.DnsPropagationDelay.TotalSeconds);
                 await Task.Delay(_options.DnsPropagationDelay, cancellationToken);
             }
 
-            logger.LogInformation("Validating challenge...");
+            LogValidatingChallenge(logger);
             await challenge.Validate();
 
             var result = await WaitForValidationAsync(challenge, cancellationToken);
 
             if (result.Status == ChallengeStatus.Valid)
             {
-                logger.LogInformation("DNS-01 challenge validated successfully.");
+                LogDnsChallengeValidatedSuccessfully(logger);
                 return true;
             }
 
-            logger.LogError("DNS-01 challenge failed with status {Status}. Error: {Error}", result.Status,
-                result.Error?.Detail);
+            LogDnsChallengeFailedWithStatusError(logger, result.Status, result.Error?.Detail);
             return false;
         }
         finally
         {
-            logger.LogInformation("Cleaning up TXT record {RecordName}", recordName);
+            LogCleaningUpTxtRecordRecordname(logger, recordName);
             await dnsProvider.DeleteTxtRecordAsync(recordName, txtValue, cancellationToken);
         }
     }
@@ -76,7 +75,7 @@ public class Dns01ChallengeHandler(
     {
         var bytes = Encoding.UTF8.GetBytes(keyAuth);
         var hash = SHA256.HashData(bytes);
-        // Base64Url encode the hash
+
         return Convert.ToBase64String(hash)
             .TrimEnd('=')
             .Replace('+', '-')
@@ -97,4 +96,26 @@ public class Dns01ChallengeHandler(
 
         return result;
     }
+
+    [LoggerMessage(LogLevel.Information, "Handling DNS-01 challenge for {domain}. Record: {recordName}")]
+    static partial void LogHandlingDnsChallengeForDomain(ILogger<Dns01ChallengeHandler> logger, string domain,
+        string recordName);
+
+    [LoggerMessage(LogLevel.Information,
+        "Creating TXT record {recordName} = {value}. Waiting {delay}s for propagation...")]
+    static partial void LogCreatingTxtRecordWaitingForPropagation(ILogger<Dns01ChallengeHandler> logger,
+        string recordName, string value, double delay);
+
+    [LoggerMessage(LogLevel.Information, "Validating challenge...")]
+    static partial void LogValidatingChallenge(ILogger<Dns01ChallengeHandler> logger);
+
+    [LoggerMessage(LogLevel.Information, "DNS-01 challenge validated successfully.")]
+    static partial void LogDnsChallengeValidatedSuccessfully(ILogger<Dns01ChallengeHandler> logger);
+
+    [LoggerMessage(LogLevel.Error, "DNS-01 challenge failed with status {status}. Error: {error}")]
+    static partial void LogDnsChallengeFailedWithStatusError(ILogger<Dns01ChallengeHandler> logger,
+        ChallengeStatus? status, string? error = "N/A");
+
+    [LoggerMessage(LogLevel.Information, "Cleaning up TXT record {recordName}")]
+    static partial void LogCleaningUpTxtRecordRecordname(ILogger<Dns01ChallengeHandler> logger, string recordName);
 }

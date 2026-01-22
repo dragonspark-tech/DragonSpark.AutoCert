@@ -31,7 +31,7 @@ public class AcmeRenewalServiceTests
         {
             ManagedDomains = ["example.com"],
             RenewalThreshold = TimeSpan.FromDays(30),
-            RenewalCheckInterval = TimeSpan.FromMilliseconds(50) // Fast for testing
+            RenewalCheckInterval = TimeSpan.FromMilliseconds(50)
         });
 
         var loggerMock = new Mock<ILogger<AcmeRenewalService>>();

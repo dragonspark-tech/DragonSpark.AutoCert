@@ -1,9 +1,12 @@
+// ReSharper disable CheckNamespace
+// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedMember.Global
+
 using DragonSpark.Acme.Abstractions;
 using DragonSpark.Acme.EntityFramework;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-// ReSharper disable CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>

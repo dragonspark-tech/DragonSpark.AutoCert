@@ -1,7 +1,9 @@
+// ReSharper disable UnusedMember.Global
+
 namespace DragonSpark.Acme;
 
 /// <summary>
-///     Contains well-known ACME directory URIs.
+///     Contains all well-known ACME directory URIs.
 /// </summary>
 public static class AcmeDirectories
 {
@@ -23,7 +25,7 @@ public static class AcmeDirectories
     /// <summary>
     ///     Google Trust Services Production Directory.
     /// </summary>
-    public static readonly Uri GooglePropduction = new("https://dv.acme-v02.api.pki.goog/directory");
+    public static readonly Uri GoogleProduction = new("https://dv.acme-v02.api.pki.goog/directory");
 
     /// <summary>
     ///     Google Trust Services Staging Directory.

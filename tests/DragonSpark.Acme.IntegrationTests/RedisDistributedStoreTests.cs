@@ -18,7 +18,7 @@ public class RedisDistributedStoreTests : IAsyncLifetime
         var opts = Options.Create(new RedisCacheOptions { Configuration = RedisConnectionString });
         _cache = new RedisCache(opts);
         _options = Options.Create(new AcmeOptions { CertificatePassword = "password" });
-        
+
         try
         {
             await _cache.SetStringAsync("ping", "pong");
@@ -49,7 +49,7 @@ public class RedisDistributedStoreTests : IAsyncLifetime
 
         Assert.NotNull(loadedCert);
         Assert.Equal(cert.Thumbprint, loadedCert.Thumbprint);
-        
+
         await store.DeleteCertificateAsync(domain, CancellationToken.None);
     }
 

@@ -27,8 +27,6 @@ public class FileSystemAccountStore(IOptions<AcmeOptions> options) : IAccountSto
         var directory = _options.CertificatePath;
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
-        // SECURITY: Ensure this directory is secured (e.g. NTFS ACLs) so only the application identity can read/write.
-        // We cannot portably enforce strict permissions here across all OSes easily in .NET Standard/Cross-plat without platform-specific code.
         var path = Path.Combine(directory, FileName);
         await File.WriteAllTextAsync(path, pemKey, cancellationToken);
     }

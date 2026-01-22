@@ -30,8 +30,15 @@ public class AcmeBuilderTests
         Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
         return;
 
-        Task Save(string s, X509Certificate2 x509Certificate2, CancellationToken cancellationToken) => Task.CompletedTask;
-        Task<X509Certificate2?> Load(string s, CancellationToken cancellationToken) => Task.FromResult<X509Certificate2?>(null);
+        Task Save(string s, X509Certificate2 x509Certificate2, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        Task<X509Certificate2?> Load(string s, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<X509Certificate2?>(null);
+        }
     }
 
     [Fact]
@@ -46,8 +53,15 @@ public class AcmeBuilderTests
         Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
         return;
 
-        Task Save(string s, string s1, int i, CancellationToken cancellationToken) => Task.CompletedTask;
-        Task<string?> Load(string s, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+        Task Save(string s, string s1, int i, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        Task<string?> Load(string s, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<string?>(null);
+        }
     }
 
     [Fact]

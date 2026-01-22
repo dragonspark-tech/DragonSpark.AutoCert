@@ -10,13 +10,14 @@ namespace DragonSpark.Acme.Services;
 /// <summary>
 ///     Handles the "http-01" ACME challenge.
 /// </summary>
-public class Http01ChallengeHandler(
+public partial class Http01ChallengeHandler(
     IChallengeStore challengeStore,
     IOptions<AcmeOptions> options,
     ILogger<Http01ChallengeHandler> logger) : IChallengeHandler
 {
     private readonly AcmeOptions _options = options.Value;
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static string ChallengeType => ChallengeTypes.Http01;
 
     string IChallengeHandler.ChallengeType => ChallengeType;
@@ -27,18 +28,18 @@ public class Http01ChallengeHandler(
         var challenge = await authorizationContext.Http();
         if (challenge == null)
         {
-            logger.LogWarning("No HTTP-01 challenge found in authorization context.");
+            LogNoHttpChallengeFoundInAuthorizationContext(logger);
             return false;
         }
 
         var token = challenge.Token;
         var keyAuth = challenge.KeyAuthz;
 
-        logger.LogDebug("Received HTTP-01 challenge. Token: {Token}", token);
+        LogReceivedHttpChallengeToken(logger, token);
 
         await challengeStore.SaveChallengeAsync(token, keyAuth, 300, cancellationToken);
 
-        logger.LogInformation("Requesting validation for HTTP-01 challenge...");
+        LogRequestingValidationForHttpChallenge(logger);
 
         await challenge.Validate();
 
@@ -46,12 +47,11 @@ public class Http01ChallengeHandler(
 
         if (result.Status != ChallengeStatus.Valid)
         {
-            logger.LogError("HTTP-01 Challenge validation failed. Status: {Status}. Error: {Error}",
-                result.Status, result.Error?.Detail);
+            LogHttpChallengeValidationFailed(logger, result.Status, result.Error?.Detail);
             throw new InvalidOperationException($"HTTP-01 Challenge failed: {result.Error?.Detail}");
         }
 
-        logger.LogInformation("HTTP-01 Challenge valid.");
+        LogHttpChallengeValid(logger);
         return true;
     }
 
@@ -66,7 +66,7 @@ public class Http01ChallengeHandler(
         {
             if (retries > maxRetries)
             {
-                logger.LogError("Validation timed out for HTTP-01 challenge.");
+                LogValidationTimedOutForHttpChallenge(logger);
                 throw new TimeoutException("Validation timed out for HTTP-01 challenge.");
             }
 
@@ -77,4 +77,23 @@ public class Http01ChallengeHandler(
 
         return result;
     }
+
+    [LoggerMessage(LogLevel.Warning, "No HTTP-01 challenge found in authorization context.")]
+    static partial void LogNoHttpChallengeFoundInAuthorizationContext(ILogger<Http01ChallengeHandler> logger);
+
+    [LoggerMessage(LogLevel.Debug, "Received HTTP-01 challenge. Token: {token}")]
+    static partial void LogReceivedHttpChallengeToken(ILogger<Http01ChallengeHandler> logger, string token);
+
+    [LoggerMessage(LogLevel.Information, "Requesting validation for HTTP-01 challenge...")]
+    static partial void LogRequestingValidationForHttpChallenge(ILogger<Http01ChallengeHandler> logger);
+
+    [LoggerMessage(LogLevel.Error, "HTTP-01 Challenge validation failed. Status: {status}. Error: {error}")]
+    static partial void LogHttpChallengeValidationFailed(ILogger<Http01ChallengeHandler> logger,
+        ChallengeStatus? status, string? error = "N/A");
+
+    [LoggerMessage(LogLevel.Information, "HTTP-01 Challenge valid.")]
+    static partial void LogHttpChallengeValid(ILogger<Http01ChallengeHandler> logger);
+
+    [LoggerMessage(LogLevel.Error, "Validation timed out for HTTP-01 challenge.")]
+    static partial void LogValidationTimedOutForHttpChallenge(ILogger<Http01ChallengeHandler> logger);
 }

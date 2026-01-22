@@ -1,3 +1,4 @@
+using System.Net;
 using DragonSpark.Acme.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,7 +8,7 @@ namespace DragonSpark.Acme.Services;
 /// <summary>
 ///     Provides diagnostic checks for the ACME environment.
 /// </summary>
-public class AcmeDiagnosticsService(
+public partial class AcmeDiagnosticsService(
     IOptions<AcmeOptions> options,
     IAccountStore accountStore,
     IHttpClientFactory httpClientFactory,
@@ -17,7 +18,7 @@ public class AcmeDiagnosticsService(
 
     public async Task<bool> ValidateEnvironmentAsync(CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Starting ACME Diagnostic Checks...");
+        LogStartingAcmeDiagnosticChecks(logger);
         var allPassed = true;
 
         try
@@ -27,17 +28,17 @@ public class AcmeDiagnosticsService(
             var response = await client.GetAsync(_options.CertificateAuthority, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
-                logger.LogInformation("Connectivity Check: PASSED ({Url})", _options.CertificateAuthority);
+                LogConnectivityCheckPassed(logger, _options.CertificateAuthority);
             }
             else
             {
-                logger.LogError("Connectivity Check: FAILED. CA returned {StatusCode}", response.StatusCode);
+                LogConnectivityCheckFailedCaCode(logger, response.StatusCode);
                 allPassed = false;
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Connectivity Check: FAILED. Could not reach CA.");
+            LogConnectivityCheckFailedCaUnreachable(logger, ex);
             allPassed = false;
         }
 
@@ -45,17 +46,40 @@ public class AcmeDiagnosticsService(
         {
             var accountPem = await accountStore.LoadAccountKeyAsync(cancellationToken);
             if (!string.IsNullOrEmpty(accountPem))
-                logger.LogInformation("Account Check: PASSED (Account found)");
+                LogAccountCheckPassedAccountFound(logger);
             else
-                logger.LogWarning("Account Check: WARNING (No account found - one will be created)");
+                LogAccountCheckWarningNoAccountFound(logger);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Account Check: FAILED. Error accessing account store.");
+            LogAccountCheckFailedErrorAccessingAccountStore(logger, ex);
             allPassed = false;
         }
 
 
         return allPassed;
     }
+
+    [LoggerMessage(LogLevel.Information, "Starting ACME Diagnostic Checks...")]
+    static partial void LogStartingAcmeDiagnosticChecks(ILogger<AcmeDiagnosticsService> logger);
+
+    [LoggerMessage(LogLevel.Information, "Connectivity Check: PASSED ({url})")]
+    static partial void LogConnectivityCheckPassed(ILogger<AcmeDiagnosticsService> logger, Uri url);
+
+    [LoggerMessage(LogLevel.Error, "Connectivity Check: FAILED. CA returned {statusCode}")]
+    static partial void LogConnectivityCheckFailedCaCode(ILogger<AcmeDiagnosticsService> logger,
+        HttpStatusCode statusCode);
+
+    [LoggerMessage(LogLevel.Error, "Connectivity Check: FAILED. Could not reach CA.")]
+    static partial void LogConnectivityCheckFailedCaUnreachable(ILogger<AcmeDiagnosticsService> logger, Exception ex);
+
+    [LoggerMessage(LogLevel.Information, "Account Check: PASSED (Account found)")]
+    static partial void LogAccountCheckPassedAccountFound(ILogger<AcmeDiagnosticsService> logger);
+
+    [LoggerMessage(LogLevel.Warning, "Account Check: WARNING (No account found - one will be created)")]
+    static partial void LogAccountCheckWarningNoAccountFound(ILogger<AcmeDiagnosticsService> logger);
+
+    [LoggerMessage(LogLevel.Error, "Account Check: FAILED. Error accessing account store.")]
+    static partial void LogAccountCheckFailedErrorAccessingAccountStore(ILogger<AcmeDiagnosticsService> logger,
+        Exception ex);
 }

@@ -26,7 +26,6 @@ public class FileSystemCertificateStore(IOptions<AcmeOptions> options) : ICertif
         }
         catch
         {
-            // Logging would be good here, but interface doesn't enforce logger generic
             return Task.FromResult<X509Certificate2?>(null);
         }
     }
@@ -53,8 +52,7 @@ public class FileSystemCertificateStore(IOptions<AcmeOptions> options) : ICertif
 
     private string GetPath(string domain)
     {
-        var sanitized = domain.Replace("*", "wildcard"); // Simple sanitization, could be more robust
-        // Basic path traversal protection could be added, but assuming domain is trusted or valid hostname.
+        var sanitized = domain.Replace("*", "wildcard");
         return Path.Combine(_options.CertificatePath, $"{sanitized}.pfx");
     }
 }

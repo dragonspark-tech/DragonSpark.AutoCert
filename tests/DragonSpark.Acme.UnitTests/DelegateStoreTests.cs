@@ -19,11 +19,19 @@ public class DelegateStoreTests
 
         // Assert
         Assert.True(invoked);
-        
+
         return;
-        
-        Task<X509Certificate2?> Load(string s, CancellationToken cancellationToken) => Task.FromResult<X509Certificate2?>(null);
-        Task Save(string s, X509Certificate2 x509Certificate2, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        Task<X509Certificate2?> Load(string s, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<X509Certificate2?>(null);
+        }
+
+        Task Save(string s, X509Certificate2 x509Certificate2, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
         Task Delete(string d, CancellationToken _)
         {
             if (d == domain) invoked = true;
@@ -48,8 +56,15 @@ public class DelegateStoreTests
         }
 
         return;
-        
-        Task<X509Certificate2?> Load(string s, CancellationToken cancellationToken) => Task.FromResult<X509Certificate2?>(null);
-        Task Save(string s, X509Certificate2 x509Certificate2, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        Task<X509Certificate2?> Load(string s, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<X509Certificate2?>(null);
+        }
+
+        Task Save(string s, X509Certificate2 x509Certificate2, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

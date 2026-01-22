@@ -1,3 +1,5 @@
+// ReSharper disable InconsistentNaming
+
 namespace DragonSpark.Acme;
 
 /// <summary>

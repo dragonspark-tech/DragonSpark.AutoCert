@@ -18,21 +18,16 @@ public class LayeredCertificateStore(ICertificateStore cacheStore, ICertificateS
         if (cached != null) return cached;
 
         var persisted = await persistentStore.GetCertificateAsync(domain, cancellationToken);
-        if (persisted != null)
-        {
-            // Write back to cache for self-healing
-            await cacheStore.SaveCertificateAsync(domain, persisted, cancellationToken);
-            return persisted;
-        }
+        if (persisted == null) return null;
 
-        return null;
+        await cacheStore.SaveCertificateAsync(domain, persisted, cancellationToken);
+        return persisted;
     }
 
     /// <inheritdoc />
     public async Task SaveCertificateAsync(string domain, X509Certificate2 certificate,
         CancellationToken cancellationToken = default)
     {
-        // Write to Persistent first (Safety)
         await persistentStore.SaveCertificateAsync(domain, certificate, cancellationToken);
         await cacheStore.SaveCertificateAsync(domain, certificate, cancellationToken);
     }

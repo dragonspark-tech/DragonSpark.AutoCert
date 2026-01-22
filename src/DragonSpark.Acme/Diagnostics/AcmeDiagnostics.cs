@@ -9,9 +9,9 @@ namespace DragonSpark.Acme.Diagnostics;
 /// </summary>
 public static class AcmeDiagnostics
 {
-    internal static readonly AssemblyName AssemblyName = typeof(AcmeDiagnostics).Assembly.GetName();
-    internal static readonly string ServiceName = AssemblyName.Name!;
-    internal static readonly Version ServiceVersion = AssemblyName.Version!;
+    private static readonly AssemblyName AssemblyName = typeof(AcmeDiagnostics).Assembly.GetName();
+    private static readonly string ServiceName = AssemblyName.Name!;
+    private static readonly Version ServiceVersion = AssemblyName.Version!;
 
     /// <summary>
     ///     The ActivitySource for DragonSpark.Acme.
@@ -23,17 +23,14 @@ public static class AcmeDiagnostics
     /// </summary>
     public static readonly Meter Meter = new(ServiceName, ServiceVersion.ToString());
 
-    // Counter: Number of certificates successfully renewed
     internal static readonly Counter<long> CertificatesRenewed = Meter.CreateCounter<long>(
         "acme.certificates.renewed",
         description: "Number of certificates successfully renewed.");
 
-    // Counter: Number of certificate renewal failures
     internal static readonly Counter<long> CertificateRenewalFailures = Meter.CreateCounter<long>(
         "acme.certificates.failed",
         description: "Number of failed certificate renewals.");
 
-    // Histogram: Duration of challenge validation
     internal static readonly Histogram<double> ChallengeValidationDuration = Meter.CreateHistogram<double>(
         "acme.challenges.duration",
         "ms",

@@ -1,3 +1,5 @@
+// ReSharper disable PropertyCanBeMadeInitOnly.Global
+
 using System.ComponentModel.DataAnnotations;
 
 namespace DragonSpark.Acme.EntityFramework.Entities;

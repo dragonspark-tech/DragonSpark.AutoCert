@@ -44,7 +44,7 @@ public class AcmeBuilderExtensionTests
         Assert.NotNull(descriptor);
 
         Assert.NotNull(descriptor.ImplementationFactory);
-        
+
         var keyedCache = services.Any(s =>
             s.ServiceKey?.ToString() == "Cache" && s.ServiceType == typeof(ICertificateStore));
         var keyedPersistence = services.Any(s =>

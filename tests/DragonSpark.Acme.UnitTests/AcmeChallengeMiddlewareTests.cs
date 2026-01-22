@@ -17,7 +17,7 @@ public class AcmeChallengeMiddlewareTests
         // Arrange
         const string token = "token123";
         const string responseContent = "response-content";
-        
+
         _challengeStoreMock.Setup(x => x.GetChallengeAsync(token, It.IsAny<CancellationToken>()))
             .ReturnsAsync(responseContent);
 
@@ -28,7 +28,7 @@ public class AcmeChallengeMiddlewareTests
                 Path = $"/.well-known/acme-challenge/{token}"
             }
         };
-        
+
         var responseBody = new MemoryStream();
         context.Response.Body = responseBody;
 

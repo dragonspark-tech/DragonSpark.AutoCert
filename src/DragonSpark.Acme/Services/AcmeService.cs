@@ -13,7 +13,7 @@ namespace DragonSpark.Acme.Services;
 /// <summary>
 ///     Default implementation of <see cref="IAcmeService" /> using the Certes library.
 /// </summary>
-public class AcmeService(
+public partial class AcmeService(
     AcmeServiceDependencies dependencies) : IAcmeService
 {
     private readonly IAccountStore _accountStore = dependencies.AccountStore;
@@ -34,17 +34,19 @@ public class AcmeService(
 
         await using var _ = await _lockProvider.AcquireLockAsync($"cert:{domainList[0]}", cancellationToken);
 
+        // ReSharper disable once ExplicitCallerInfoArgument
         using var activity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.OrderCertificate");
+
         activity?.SetTag("acme.domains", string.Join(",", domainList));
 
-        _logger.LogInformation("Starting certificate order for domains: {Domains}", string.Join(", ", domainList));
+        LogStartingCertificateOrderForDomains(string.Join(", ", domainList));
 
         var accountKeyPem = await _accountStore.LoadAccountKeyAsync(cancellationToken);
         IAcmeContext acme;
 
         if (!string.IsNullOrEmpty(accountKeyPem))
         {
-            _logger.LogDebug("Restoring existing ACME account.");
+            LogRestoringExistingAcmeAccount();
             var accountKey = KeyFactory.FromPem(accountKeyPem);
             acme = CreateContext(accountKey);
             await acme.Account();
@@ -55,33 +57,35 @@ public class AcmeService(
 
             if (!string.IsNullOrEmpty(_options.AccountKeyId) && !string.IsNullOrEmpty(_options.AccountHmacKey))
             {
-                _logger.LogInformation("Using External Account Binding (EAB).");
-                await acme.NewAccount(new[] { $"mailto:{_options.Email}" }, _options.TermsOfServiceAgreed,
+                LogUsingExternalAccountBindingEab();
+                await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed,
                     _options.AccountKeyId,
                     _options.AccountHmacKey);
             }
             else
             {
-                _logger.LogInformation("Creating new ACME account for {Email}", _options.Email);
-                await acme.NewAccount(new[] { $"mailto:{_options.Email}" }, _options.TermsOfServiceAgreed);
+                LogCreatingNewAcmeAccountForEmail(_options.Email);
+                await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed);
             }
 
-            _logger.LogDebug("Saving new ACME account key.");
+            LogSavingNewAcmeAccountKey();
             await _accountStore.SaveAccountKeyAsync(acme.AccountKey.ToPem(), cancellationToken);
         }
 
         var order = await acme.NewOrder(domainList);
 
+        // ReSharper disable once ExplicitCallerInfoArgument
         using (var validationActivity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.ValidateChallenges"))
         {
             var authzs = await order.Authorizations();
             await ValidateAuthorizationsAsync(authzs, cancellationToken, validationActivity);
         }
 
-        _logger.LogInformation("Finalizing order...");
+        LogFinalizingOrder();
 
         var privateKey = KeyFactory.NewKey(GetKeyAlgorithm());
 
+        // ReSharper disable once ExplicitCallerInfoArgument
         using var finalizeActivity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.FinalizeOrder");
         var certChain = await order.Generate(new CsrInfo
         {
@@ -94,13 +98,13 @@ public class AcmeService(
         }, privateKey);
 
         var pfxBuilder = certChain.ToPfx(privateKey);
-        var pfxBytes = pfxBuilder.Build(domains.First(), _options.CertificatePassword);
+        var pfxBytes = pfxBuilder.Build(domainList[0], _options.CertificatePassword);
 
         var cert = CertificateLoaderHelper.LoadFromBytes(pfxBytes, _options.CertificatePassword);
 
         foreach (var domain in domainList)
         {
-            _logger.LogInformation("Saving certificate for {Domain}", domain);
+            LogSavingCertificateForDomain(domain);
             await _certificateStore.SaveCertificateAsync(domain, cert, cancellationToken);
         }
 
@@ -111,10 +115,10 @@ public class AcmeService(
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error executing lifecycle hook {HookType}", hook.GetType().Name);
+                LogErrorExecutingLifecycleHook(hook.GetType().Name, ex);
             }
 
-        _logger.LogInformation("Certificate successfully ordered and stored.");
+        LogCertificateSuccessfullyOrderedAndStored();
         AcmeDiagnostics.CertificatesRenewed.Add(1);
     }
 
@@ -122,12 +126,12 @@ public class AcmeService(
     public async Task RevokeCertificateAsync(string domain, RevocationReason reason = RevocationReason.Unspecified,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogWarning("Revoking certificate for {Domain}. Reason: {Reason}", domain, reason);
+        LogRevokingCertificateForDomainReason(domain, reason);
 
         var accountKeyPem = await _accountStore.LoadAccountKeyAsync(cancellationToken);
         if (string.IsNullOrEmpty(accountKeyPem))
         {
-            _logger.LogError("Cannot revoke certificate: No account key found.");
+            LogCannotRevokeCertificateNoAccountKeyFound();
             throw new InvalidOperationException("No ACME account found.");
         }
 
@@ -138,7 +142,7 @@ public class AcmeService(
         var cert = await _certificateStore.GetCertificateAsync(domain, cancellationToken);
         if (cert == null)
         {
-            _logger.LogError("Cannot revoke certificate: No certificate found for {Domain}", domain);
+            LogCannotRevokeCertificateNoCertificateFoundForDomain(domain);
             throw new InvalidOperationException($"No certificate found for {domain}");
         }
 
@@ -146,7 +150,7 @@ public class AcmeService(
 
         await acme.RevokeCertificate(certBytes, reason);
 
-        _logger.LogInformation("Certificate revoked. Deleting from store.");
+        LogCertificateRevokedDeletingFromStore();
         await _certificateStore.DeleteCertificateAsync(domain, cancellationToken);
     }
 
@@ -155,12 +159,12 @@ public class AcmeService(
     {
         await using var _ = await _lockProvider.AcquireLockAsync("account:rollover", cancellationToken);
 
-        _logger.LogInformation("Starting account key rollover.");
+        LogStartingAccountKeyRollover();
 
         var accountKeyPem = await _accountStore.LoadAccountKeyAsync(cancellationToken);
         if (string.IsNullOrEmpty(accountKeyPem))
         {
-            _logger.LogError("Cannot rollover key: No account key found.");
+            LogCannotRolloverKeyNoAccountKeyFound();
             throw new InvalidOperationException("No ACME account found.");
         }
 
@@ -170,10 +174,10 @@ public class AcmeService(
 
         var newKey = KeyFactory.NewKey(GetKeyAlgorithm());
 
-        _logger.LogDebug("Requesting key change to new key.");
+        LogRequestingKeyChangeToNewKey();
         await acme.ChangeKey(newKey);
 
-        _logger.LogInformation("Key change successful. Saving new account key.");
+        LogKeyChangeSuccessfulSavingNewAccountKey();
         await _accountStore.SaveAccountKeyAsync(newKey.ToPem(), cancellationToken);
     }
 
@@ -208,40 +212,98 @@ public class AcmeService(
 
             if (status == AuthorizationStatus.Valid)
             {
-                _logger.LogInformation("Authorization for {Identifier} is already valid.", identifier);
+                LogAuthorizationForIdentifierIsAlreadyValid(identifier);
                 continue;
             }
 
             var handled = false;
             foreach (var handler in _challengeHandlers)
             {
-                _logger.LogInformation("Attempting validation for {Identifier} using {ChallengeType}", identifier,
-                    handler.ChallengeType);
+                LogAttemptingValidationForIdentifierUsingChallengetype(identifier, handler.ChallengeType);
                 try
                 {
                     var sw = Stopwatch.StartNew();
-                    if (await handler.HandleChallengeAsync(authz, cancellationToken))
-                    {
-                        sw.Stop();
-                        AcmeDiagnostics.ChallengeValidationDuration.Record(sw.Elapsed.TotalMilliseconds,
-                            new KeyValuePair<string, object?>("challenge.type", handler.ChallengeType));
-                        handled = true;
-                        break;
-                    }
+                    if (!await handler.HandleChallengeAsync(authz, cancellationToken)) continue;
+
+                    sw.Stop();
+                    AcmeDiagnostics.ChallengeValidationDuration.Record(sw.Elapsed.TotalMilliseconds,
+                        new KeyValuePair<string, object?>("challenge.type", handler.ChallengeType));
+                    handled = true;
+                    break;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Strategy {ChallengeType} failed for {Identifier}.",
-                        handler.ChallengeType,
-                        identifier);
+                    LogStrategyChallengetypeFailedForIdentifier(handler.ChallengeType, identifier, ex);
                 }
             }
 
-            if (!handled)
-            {
-                _logger.LogError("No suitable challenge handler found or all failed for {Identifier}", identifier);
-                throw new InvalidOperationException($"Could not validate ownership for {identifier}");
-            }
+            if (handled) continue;
+
+            LogNoSuitableChallengeHandlerFoundOrAllFailedForIdentifier(identifier);
+            throw new InvalidOperationException($"Could not validate ownership for {identifier}");
         }
     }
+
+    [LoggerMessage(LogLevel.Information, "Starting certificate order for domains: {domains}")]
+    partial void LogStartingCertificateOrderForDomains(string domains);
+
+    [LoggerMessage(LogLevel.Debug, "Restoring existing ACME account.")]
+    partial void LogRestoringExistingAcmeAccount();
+
+    [LoggerMessage(LogLevel.Information, "Using External Account Binding (EAB).")]
+    partial void LogUsingExternalAccountBindingEab();
+
+    [LoggerMessage(LogLevel.Information, "Creating new ACME account for {email}")]
+    partial void LogCreatingNewAcmeAccountForEmail(string email);
+
+    [LoggerMessage(LogLevel.Debug, "Saving new ACME account key.")]
+    partial void LogSavingNewAcmeAccountKey();
+
+    [LoggerMessage(LogLevel.Information, "Finalizing order...")]
+    partial void LogFinalizingOrder();
+
+    [LoggerMessage(LogLevel.Information, "Saving certificate for {domain}")]
+    partial void LogSavingCertificateForDomain(string domain);
+
+    [LoggerMessage(LogLevel.Error, "Error executing lifecycle hook {hookType}")]
+    partial void LogErrorExecutingLifecycleHook(string hookType, Exception ex);
+
+    [LoggerMessage(LogLevel.Information, "Certificate successfully ordered and stored.")]
+    partial void LogCertificateSuccessfullyOrderedAndStored();
+
+    [LoggerMessage(LogLevel.Warning, "Revoking certificate for {domain}. Reason: {reason}")]
+    partial void LogRevokingCertificateForDomainReason(string domain, RevocationReason reason);
+
+    [LoggerMessage(LogLevel.Error, "Cannot revoke certificate: No account key found.")]
+    partial void LogCannotRevokeCertificateNoAccountKeyFound();
+
+    [LoggerMessage(LogLevel.Error, "Cannot revoke certificate: No certificate found for {domain}")]
+    partial void LogCannotRevokeCertificateNoCertificateFoundForDomain(string domain);
+
+    [LoggerMessage(LogLevel.Information, "Certificate revoked. Deleting from store.")]
+    partial void LogCertificateRevokedDeletingFromStore();
+
+    [LoggerMessage(LogLevel.Information, "Starting account key rollover.")]
+    partial void LogStartingAccountKeyRollover();
+
+    [LoggerMessage(LogLevel.Error, "Cannot rollover key: No account key found.")]
+    partial void LogCannotRolloverKeyNoAccountKeyFound();
+
+    [LoggerMessage(LogLevel.Debug, "Requesting key change to new key.")]
+    partial void LogRequestingKeyChangeToNewKey();
+
+    [LoggerMessage(LogLevel.Information, "Key change successful. Saving new account key.")]
+    partial void LogKeyChangeSuccessfulSavingNewAccountKey();
+
+    [LoggerMessage(LogLevel.Information, "Authorization for {identifier} is already valid.")]
+    partial void LogAuthorizationForIdentifierIsAlreadyValid(string identifier);
+
+    [LoggerMessage(LogLevel.Information, "Attempting validation for {identifier} using {challengeType}")]
+    partial void LogAttemptingValidationForIdentifierUsingChallengetype(string identifier, string challengeType);
+
+    [LoggerMessage(LogLevel.Warning, "Strategy {challengeType} failed for {identifier}.")]
+    partial void LogStrategyChallengetypeFailedForIdentifier(string challengeType, string identifier, Exception ex);
+
+    [LoggerMessage(LogLevel.Error, "No suitable challenge handler found or all failed for {identifier}")]
+    partial void LogNoSuitableChallengeHandlerFoundOrAllFailedForIdentifier(string identifier);
 }

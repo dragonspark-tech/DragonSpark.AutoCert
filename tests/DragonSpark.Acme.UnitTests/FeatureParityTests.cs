@@ -35,7 +35,7 @@ public class FeatureParityTests
         var store = provider.GetRequiredService<ICertificateStore>();
 
         await store.GetCertificateAsync("example.com", TestContext.Current.CancellationToken);
-        
+
 #pragma warning disable SYSLIB0057
         await store.SaveCertificateAsync("example.com", new X509Certificate2(Array.Empty<byte>()),
             TestContext.Current.CancellationToken);

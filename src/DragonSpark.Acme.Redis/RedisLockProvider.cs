@@ -10,7 +10,7 @@ namespace DragonSpark.Acme.Redis;
 /// <summary>
 ///     A lock provider that uses Redis via RedLock.net.
 /// </summary>
-public sealed class RedisLockProvider : ILockProvider, IDisposable
+public sealed partial class RedisLockProvider : ILockProvider, IDisposable
 {
     private readonly ILogger<RedisLockProvider> _logger;
     private readonly RedLockFactory _redLockFactory;
@@ -45,11 +45,11 @@ public sealed class RedisLockProvider : ILockProvider, IDisposable
 
         if (!redLock.IsAcquired)
         {
-            _logger.LogError("Failed to acquire Redis lock for {Key}", key);
+            LogFailedToAcquireRedisLockForKey(key);
             throw new TimeoutException($"Failed to acquire Redis lock for {key}");
         }
 
-        _logger.LogDebug("Acquired Redis lock for {Key}", key);
+        LogAcquiredRedisLockForKey(key);
         return new RedisLockWrapper(redLock, _logger, key);
     }
 
@@ -61,6 +61,15 @@ public sealed class RedisLockProvider : ILockProvider, IDisposable
         return new RedLockEndPoint(new DnsEndPoint(parts[0], port));
     }
 
+    [LoggerMessage(LogLevel.Debug, "Released Redis lock for {key}")]
+    static partial void LogReleasedRedisLockForKey(ILogger logger, string key);
+
+    [LoggerMessage(LogLevel.Error, "Failed to acquire Redis lock for {key}")]
+    partial void LogFailedToAcquireRedisLockForKey(string key);
+
+    [LoggerMessage(LogLevel.Debug, "Acquired Redis lock for {key}")]
+    partial void LogAcquiredRedisLockForKey(string key);
+
     private sealed class RedisLockWrapper(IRedLock redLock, ILogger logger, string key) : IDistributedLock
     {
         public string LockId => redLock.Resource;
@@ -68,7 +77,7 @@ public sealed class RedisLockProvider : ILockProvider, IDisposable
         public async ValueTask DisposeAsync()
         {
             await redLock.DisposeAsync();
-            logger.LogDebug("Released Redis lock for {Key}", key);
+            LogReleasedRedisLockForKey(logger, key);
         }
     }
 }

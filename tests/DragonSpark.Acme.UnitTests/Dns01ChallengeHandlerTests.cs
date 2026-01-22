@@ -17,7 +17,7 @@ public class Dns01ChallengeHandlerTests
     {
         _dnsProviderMock = new Mock<IDnsProvider>();
         var loggerMock = new Mock<ILogger<Dns01ChallengeHandler>>();
-        var options = Options.Create(new AcmeOptions { DnsPropagationDelay = TimeSpan.Zero }); // Zero delay for tests
+        var options = Options.Create(new AcmeOptions { DnsPropagationDelay = TimeSpan.Zero });
 
         _handler = new Dns01ChallengeHandler(_dnsProviderMock.Object, options, loggerMock.Object);
     }
@@ -58,12 +58,11 @@ public class Dns01ChallengeHandlerTests
         // Assert
         Assert.True(result);
 
-        // Verify Create -> Validate -> Delete order
         _dnsProviderMock.Verify(
             m => m.CreateTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(),
                 It.IsAny<CancellationToken>()), Times.Once);
         challengeContextMock.Verify(m => m.Validate(), Times.Once);
-        
+
         _dnsProviderMock.Verify(
             m => m.DeleteTxtRecordAsync("_acme-challenge.example.com", It.IsAny<string>(),
                 It.IsAny<CancellationToken>()), Times.Once);

@@ -49,7 +49,7 @@ public class RolloverTests
 
         var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<AcmeService>();
-        
+
         try
         {
             await service.OrderCertificateAsync(["rollover.localhost"], TestContext.Current.CancellationToken);
@@ -63,7 +63,7 @@ public class RolloverTests
 
         var key1 = await accountStore.LoadAccountKeyAsync(TestContext.Current.CancellationToken);
         Assert.NotNull(key1);
-        
+
         await service.RolloverAccountKeyAsync(TestContext.Current.CancellationToken);
 
         var key2 = await accountStore.LoadAccountKeyAsync(TestContext.Current.CancellationToken);

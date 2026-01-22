@@ -12,7 +12,7 @@ namespace DragonSpark.Acme.Services;
 /// <summary>
 ///     Background service that monitors and renews certificates for managed domains.
 /// </summary>
-public class AcmeRenewalService(
+public partial class AcmeRenewalService(
     IServiceProvider serviceProvider,
     IOptions<AcmeOptions> options,
     ILogger<AcmeRenewalService> logger) : BackgroundService
@@ -29,7 +29,7 @@ public class AcmeRenewalService(
                     new Measurement<double>(kvp.Value, new KeyValuePair<string, object?>("acme.domain", kvp.Key)));
             });
 
-        logger.LogInformation("Starting ACME Renewal Service.");
+        LogStartingAcmeRenewalService(logger);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -39,7 +39,7 @@ public class AcmeRenewalService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred during certificate renewal check.");
+                LogErrorCertificateRenewalCheck(logger, ex);
             }
 
             await Task.Delay(_options.RenewalCheckInterval, stoppingToken);
@@ -50,12 +50,13 @@ public class AcmeRenewalService(
     {
         if (_options.ManagedDomains.Count == 0) return;
 
+        // ReSharper disable once ExplicitCallerInfoArgument
         using var activity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeRenewalService.CheckRenewals");
 
         using var scope = serviceProvider.CreateScope();
         var certificateStore = scope.ServiceProvider.GetRequiredService<ICertificateStore>();
         var acmeService = scope.ServiceProvider.GetRequiredService<IAcmeService>();
-        var lifecycleHooks = scope.ServiceProvider.GetServices<ICertificateLifecycle>();
+        var lifecycleHooks = scope.ServiceProvider.GetServices<ICertificateLifecycle>().ToList();
 
         foreach (var domain in _options.ManagedDomains)
             try
@@ -64,7 +65,7 @@ public class AcmeRenewalService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to renew certificate for {Domain}", domain);
+                LogFailedToRenewCertificateForDomain(logger, domain, ex);
                 foreach (var hook in lifecycleHooks)
                     try
                     {
@@ -72,8 +73,7 @@ public class AcmeRenewalService(
                     }
                     catch (Exception hookEx)
                     {
-                        logger.LogError(hookEx, "Error executing lifecycle hook {HookType} for failure",
-                            hook.GetType().Name);
+                        LogErrorExecutingLifecycleHook(logger, hook.GetType().Name, hookEx);
                     }
 
                 AcmeDiagnostics.CertificateRenewalFailures.Add(1);
@@ -86,7 +86,7 @@ public class AcmeRenewalService(
         var cert = await certificateStore.GetCertificateAsync(domain, cancellationToken);
         if (cert == null)
         {
-            logger.LogInformation("Certificate for {Domain} not found. Initiating order.", domain);
+            LogCertificateForDomainNotFound(logger, domain);
             await acmeService.OrderCertificateAsync([domain], cancellationToken);
             return;
         }
@@ -96,9 +96,29 @@ public class AcmeRenewalService(
 
         if (timeLeft < _options.RenewalThreshold)
         {
-            logger.LogInformation("Certificate for {Domain} expires in {TimeLeft}. Renewing...", domain,
-                timeLeft);
+            LogCertificateForDomainExpiration(logger, domain, timeLeft);
             await acmeService.OrderCertificateAsync([domain], cancellationToken);
         }
     }
+
+    [LoggerMessage(LogLevel.Information, "Starting ACME Renewal Service.")]
+    static partial void LogStartingAcmeRenewalService(ILogger<AcmeRenewalService> logger);
+
+    [LoggerMessage(LogLevel.Error, "Error occurred during certificate renewal check.")]
+    static partial void LogErrorCertificateRenewalCheck(ILogger<AcmeRenewalService> logger, Exception ex);
+
+    [LoggerMessage(LogLevel.Error, "Failed to renew certificate for {domain}")]
+    static partial void LogFailedToRenewCertificateForDomain(ILogger<AcmeRenewalService> logger, string domain,
+        Exception ex);
+
+    [LoggerMessage(LogLevel.Error, "Error executing lifecycle hook {hookType} for failure")]
+    static partial void LogErrorExecutingLifecycleHook(ILogger<AcmeRenewalService> logger, string hookType,
+        Exception ex);
+
+    [LoggerMessage(LogLevel.Information, "Certificate for {domain} not found. Initiating order.")]
+    static partial void LogCertificateForDomainNotFound(ILogger<AcmeRenewalService> logger, string domain);
+
+    [LoggerMessage(LogLevel.Information, "Certificate for {domain} expires in {timeLeft}. Renewing...")]
+    static partial void LogCertificateForDomainExpiration(ILogger<AcmeRenewalService> logger, string domain,
+        TimeSpan timeLeft);
 }

@@ -48,10 +48,10 @@ public class AcmeCertificateSelectorTests
         var cert = CreateTestCertificate(wildcard);
 
         _certificateStoreMock.Setup(x => x.GetCertificateAsync(domain, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((X509Certificate2?)null); // Exact match fails
+            .ReturnsAsync((X509Certificate2?)null);
 
         _certificateStoreMock.Setup(x => x.GetCertificateAsync(wildcard, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(cert); // Wildcard match succeeds
+            .ReturnsAsync(cert);
 
         var selector = new AcmeCertificateSelector(_certificateStoreMock.Object, _loggerMock.Object);
 

@@ -23,13 +23,11 @@ public class MemoryChallengeStore : IChallengeStore
     /// <inheritdoc />
     public Task<string?> GetChallengeAsync(string token, CancellationToken cancellationToken = default)
     {
-        if (_challenges.TryGetValue(token, out var existing))
-        {
-            if (existing.Expires > DateTimeOffset.UtcNow) return Task.FromResult<string?>(existing.Response);
+        if (!_challenges.TryGetValue(token, out var existing)) return Task.FromResult<string?>(null);
 
-            // Expired, try to remove
-            _challenges.TryRemove(token, out _);
-        }
+        if (existing.Expires > DateTimeOffset.UtcNow) return Task.FromResult<string?>(existing.Response);
+
+        _challenges.TryRemove(token, out _);
 
         return Task.FromResult<string?>(null);
     }

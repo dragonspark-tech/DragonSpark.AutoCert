@@ -17,6 +17,7 @@ public static class AcmeBuilderExtensions
     /// <param name="builder">The builder.</param>
     /// <param name="loadWrapper">Function to load a certificate.</param>
     /// <param name="saveWrapper">Function to save a certificate.</param>
+    /// <param name="deleteWrapper">Function to delete a certificate.</param>
     /// <returns>The builder.</returns>
     public static IAcmeBuilder AddCertificateStore(
         this IAcmeBuilder builder,
