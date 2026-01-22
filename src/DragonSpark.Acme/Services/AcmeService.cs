@@ -19,8 +19,10 @@ public class AcmeService(
     IEnumerable<ICertificateLifecycle> lifecycleHooks,
     IEnumerable<IChallengeHandler> challengeHandlers,
     IHttpClientFactory httpClientFactory,
-    ILogger<AcmeService> logger) : IAcmeService
+    ILogger<AcmeService> logger,
+    ILockProvider lockProvider) : IAcmeService
 {
+    private readonly ILockProvider _lockProvider = lockProvider;
     private readonly AcmeOptions _options = options.Value;
 
     /// <inheritdoc />
@@ -29,6 +31,8 @@ public class AcmeService(
         var domainList = domains.ToList();
         if (domainList.Count == 0)
             throw new ArgumentException("At least one domain must be specified.", nameof(domains));
+
+        await using var _ = await _lockProvider.AcquireLockAsync($"cert:{domainList[0]}", cancellationToken);
 
         logger.LogInformation("Starting certificate order for domains: {Domains}", string.Join(", ", domainList));
 
@@ -177,6 +181,8 @@ public class AcmeService(
     /// <inheritdoc />
     public async Task RolloverAccountKeyAsync(CancellationToken cancellationToken = default)
     {
+        await using var _ = await _lockProvider.AcquireLockAsync("account:rollover", cancellationToken);
+
         logger.LogInformation("Starting account key rollover.");
 
         var accountKeyPem = await accountStore.LoadAccountKeyAsync(cancellationToken);

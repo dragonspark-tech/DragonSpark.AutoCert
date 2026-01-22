@@ -20,6 +20,7 @@ A modern, lightweight, and extensible ACME (Let's Encrypt) client for ASP.NET Co
     - **Security First**: 
         - **Account Rollover**: Securely rotate compromised account keys.
         - **Configurable Keys**: Support for RSA (2048/4096) and ECDSA (P-256/P-384/P-521) keys.
+        - **Distributed Locking**: Prevent race conditions in clustered environments using FileSystem or Redis locks.
 
 ## Installation
 
@@ -109,6 +110,20 @@ public class WebHookNotifier : ICertificateLifecycle
 
 // Register
 builder.Services.AddAcme(...).AddLifecycleHook<WebHookNotifier>();
+```
+
+### Distributed Locking
+
+**FileSystem (Default):**
+Enabled by default. Stores lock files in `.locks` subdirectory.
+
+**Redis (Clustered):**
+Uses RedLock.net for robust distributed locking.
+1. Add package `DragonSpark.Acme.Redis`.
+2. Configure:
+```csharp
+builder.Services.AddAcme(...)
+    .AddRedisLock("localhost:6379");
 ```
 
 ### Account Management

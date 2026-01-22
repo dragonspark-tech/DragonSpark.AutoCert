@@ -71,6 +71,8 @@ public class ConnectivityTests
                 ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
             });
 
+        services.AddSingleton<ILockProvider, FileSystemLockProvider>();
+
         services.AddSingleton<AcmeService>();
 
         var provider = services.BuildServiceProvider();

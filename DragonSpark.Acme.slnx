@@ -4,6 +4,7 @@
         <Project Path="tests/DragonSpark.Acme.UnitTests/DragonSpark.Acme.UnitTests.csproj"/>
     </Folder>
     <Project Path="src/DragonSpark.Acme.EntityFramework/DragonSpark.Acme.EntityFramework.csproj"/>
+    <Project Path="src/DragonSpark.Acme.Redis/DragonSpark.Acme.Redis.csproj"/>
     <Project Path="src/DragonSpark.Acme/DragonSpark.Acme.csproj"/>
     <Project Path="src/DragonSpark.AspNetCore.Acme/DragonSpark.AspNetCore.Acme.csproj"/>
 </Solution>
