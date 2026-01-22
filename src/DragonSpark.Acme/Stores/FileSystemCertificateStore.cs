@@ -39,7 +39,7 @@ public class FileSystemCertificateStore(IOptions<AcmeOptions> options) : ICertif
         var directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
-        var data = certificate.Export(X509ContentType.Pfx);
+        var data = certificate.Export(X509ContentType.Pfx, _options.CertificatePassword);
         await File.WriteAllBytesAsync(path, data, cancellationToken);
     }
 

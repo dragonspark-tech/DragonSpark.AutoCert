@@ -132,7 +132,7 @@ public class AcmeService(
         }
 
         var accountKey = KeyFactory.FromPem(accountKeyPem);
-        var acme = new AcmeContext(_options.CertificateAuthority, accountKey);
+        var acme = CreateContext(accountKey);
         await acme.Account();
 
         var cert = await _certificateStore.GetCertificateAsync(domain, cancellationToken);
@@ -144,7 +144,7 @@ public class AcmeService(
 
         var certBytes = cert.Export(X509ContentType.Cert);
 
-        await acme.RevokeCertificate(certBytes, reason, null);
+        await acme.RevokeCertificate(certBytes, reason);
 
         _logger.LogInformation("Certificate revoked. Deleting from store.");
         await _certificateStore.DeleteCertificateAsync(domain, cancellationToken);
@@ -177,7 +177,7 @@ public class AcmeService(
         await _accountStore.SaveAccountKeyAsync(newKey.ToPem(), cancellationToken);
     }
 
-    private IAcmeContext CreateContext(IKey? accountKey = null)
+    protected virtual IAcmeContext CreateContext(IKey? accountKey = null)
     {
         var httpClient = _httpClientFactory.CreateClient("Acme");
         var acmeClient = new AcmeHttpClient(_options.CertificateAuthority, httpClient);
