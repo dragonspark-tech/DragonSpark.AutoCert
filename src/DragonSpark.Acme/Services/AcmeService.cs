@@ -24,6 +24,7 @@ public partial class AcmeService(
     private readonly ILockProvider _lockProvider = dependencies.LockProvider;
     private readonly ILogger<AcmeService> _logger = dependencies.Logger;
     private readonly AcmeOptions _options = dependencies.Options.Value;
+    private readonly IOrderStore _orderStore = dependencies.OrderStore;
 
     /// <inheritdoc />
     public async Task OrderCertificateAsync(IEnumerable<string> domains, CancellationToken cancellationToken = default)
@@ -72,7 +73,37 @@ public partial class AcmeService(
             await _accountStore.SaveAccountKeyAsync(acme.AccountKey.ToPem(), cancellationToken);
         }
 
-        var order = await acme.NewOrder(domainList);
+        var primaryDomain = domainList[0];
+        IOrderContext order;
+
+        var existingOrderUri = await _orderStore.GetOrderAsync(primaryDomain, cancellationToken);
+        if (!string.IsNullOrEmpty(existingOrderUri))
+        {
+            LogFoundExistingOrderResuming(existingOrderUri);
+            order = acme.Order(new Uri(existingOrderUri));
+            try
+            {
+                var resource = await order.Resource();
+                if (resource.Status == OrderStatus.Invalid)
+                {
+                    LogExistingOrderInvalidCreatingNew();
+                    order = await acme.NewOrder(domainList);
+                    await _orderStore.SaveOrderAsync(primaryDomain, order.Location.ToString(), cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogFailedToLoadExistingOrderCreatingNew(ex);
+                order = await acme.NewOrder(domainList);
+                await _orderStore.SaveOrderAsync(primaryDomain, order.Location.ToString(), cancellationToken);
+            }
+        }
+        else
+        {
+            LogCreatingNewOrder();
+            order = await acme.NewOrder(domainList);
+            await _orderStore.SaveOrderAsync(primaryDomain, order.Location.ToString(), cancellationToken);
+        }
 
         // ReSharper disable once ExplicitCallerInfoArgument
         using (var validationActivity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.ValidateChallenges"))
@@ -119,6 +150,7 @@ public partial class AcmeService(
             }
 
         LogCertificateSuccessfullyOrderedAndStored();
+        await _orderStore.DeleteOrderAsync(domainList[0], cancellationToken);
         AcmeDiagnostics.CertificatesRenewed.Add(1);
     }
 
@@ -306,4 +338,16 @@ public partial class AcmeService(
 
     [LoggerMessage(LogLevel.Error, "No suitable challenge handler found or all failed for {identifier}")]
     partial void LogNoSuitableChallengeHandlerFoundOrAllFailedForIdentifier(string identifier);
+
+    [LoggerMessage(LogLevel.Information, "Found existing order {orderUri}. Resuming...")]
+    partial void LogFoundExistingOrderResuming(string orderUri);
+
+    [LoggerMessage(LogLevel.Warning, "Existing order is invalid. Creating new order.")]
+    partial void LogExistingOrderInvalidCreatingNew();
+
+    [LoggerMessage(LogLevel.Warning, "Failed to load existing order. Creating new order.")]
+    partial void LogFailedToLoadExistingOrderCreatingNew(Exception ex);
+
+    [LoggerMessage(LogLevel.Information, "Creating new order.")]
+    partial void LogCreatingNewOrder();
 }

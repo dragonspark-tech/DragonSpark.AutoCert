@@ -24,6 +24,7 @@ public static class AcmeEntityFrameworkExtensions
         where TContext : DbContext
     {
         builder.Services.Replace(ServiceDescriptor.Scoped<ICertificateStore, EfCertificateStore<TContext>>());
+        builder.Services.Replace(ServiceDescriptor.Scoped<IAccountStore, EfAccountStore<TContext>>());
         return builder;
     }
 }

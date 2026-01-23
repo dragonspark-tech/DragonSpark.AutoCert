@@ -2,6 +2,7 @@ using System.Security.Cryptography.X509Certificates;
 using Certes;
 using Certes.Acme;
 using DragonSpark.Acme.Abstractions;
+using DragonSpark.Acme.Helpers;
 using DragonSpark.Acme.Services;
 using DragonSpark.Acme.Stores;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,7 +45,8 @@ public class ConnectivityTests
             CertificateAuthority = new Uri(PebbleDirectory),
             Email = "integration-test@example.com",
             TermsOfServiceAgreed = true,
-            CertificatePath = "test-store"
+            CertificatePath = "test-store",
+            CertificatePassword = "SuperSafePassword123!"
         }));
 
         services.AddLogging(l => l.AddConsole());
@@ -59,8 +61,12 @@ public class ConnectivityTests
             (_, _, _, _) => Task.CompletedTask
         ));
 
+        services.AddSingleton<AccountKeyCipher>();
         services.AddSingleton<IAccountStore>(sp =>
-            new FileSystemAccountStore(sp.GetRequiredService<IOptions<AcmeOptions>>()));
+            new FileSystemAccountStore(sp.GetRequiredService<IOptions<AcmeOptions>>(),
+                sp.GetRequiredService<AccountKeyCipher>()));
+
+        services.AddSingleton<IOrderStore, FileSystemOrderStore>();
 
         services.AddSingleton<IChallengeHandler>(sp =>
             ActivatorUtilities.CreateInstance<Http01ChallengeHandler>(sp));

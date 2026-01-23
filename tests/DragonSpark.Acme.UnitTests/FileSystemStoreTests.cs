@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using DragonSpark.Acme.Helpers;
 using DragonSpark.Acme.Stores;
 using Microsoft.Extensions.Options;
 
@@ -27,7 +28,8 @@ public sealed class FileSystemStoreTests : IDisposable
     public async Task AccountStore_SaveAndLoad_ReturnsKey()
     {
         // Arrange
-        var store = new FileSystemAccountStore(_options);
+        var cipher = new AccountKeyCipher(_options);
+        var store = new FileSystemAccountStore(_options, cipher);
         const string key = "test-account-key";
 
         // Act

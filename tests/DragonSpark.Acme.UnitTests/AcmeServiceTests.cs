@@ -17,19 +17,26 @@ public class AcmeServiceTests
     private readonly Mock<IAcmeContext> _acmeContextMock;
     private readonly Mock<ICertificateStore> _certificateStoreMock;
     private readonly AcmeServiceDependencies _dependencies;
+    private readonly Mock<IOrderStore> _orderStoreMock;
 
     public AcmeServiceTests()
     {
         _accountStoreMock = new Mock<IAccountStore>();
         _certificateStoreMock = new Mock<ICertificateStore>();
+        _orderStoreMock = new Mock<IOrderStore>();
         _acmeContextMock = new Mock<IAcmeContext>();
 
-        var options = Options.Create(new AcmeOptions { CertificateAuthority = new Uri("http://localhost") });
+        var options = Options.Create(new AcmeOptions
+        {
+            CertificateAuthority = new Uri("http://localhost"),
+            CertificatePassword = "StrongTestPassword123!"
+        });
 
         _dependencies = new AcmeServiceDependencies(
             options,
             _certificateStoreMock.Object,
             _accountStoreMock.Object,
+            _orderStoreMock.Object,
             [],
             [],
             new Mock<IHttpClientFactory>().Object,
@@ -121,6 +128,7 @@ public class AcmeServiceTests
         _acmeContextMock.Setup(x => x.Account()).ReturnsAsync(new Mock<IAccountContext>().Object);
 
         var orderMock = new Mock<IOrderContext>();
+        orderMock.Setup(x => x.Location).Returns(new Uri("http://example.com/order/1"));
         _acmeContextMock.Setup(x => x.NewOrder(It.IsAny<IList<string>>()))
             .ReturnsAsync(orderMock.Object);
 
@@ -140,17 +148,25 @@ public class AcmeServiceTests
         lockProviderMock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Mock<IDistributedLock>().Object);
 
+        _orderStoreMock.Setup(x => x.GetOrderAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
         var failingHandler = new Mock<IChallengeHandler>();
         failingHandler.Setup(x => x.ChallengeType).Returns("failing-type");
         failingHandler.Setup(x =>
                 x.HandleChallengeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Handler failure"));
 
-        var options = Options.Create(new AcmeOptions { CertificateAuthority = new Uri("http://localhost") });
+        var options = Options.Create(new AcmeOptions
+        {
+            CertificateAuthority = new Uri("http://localhost"),
+            CertificatePassword = "StrongTestPassword123!"
+        });
         var dependencies = new AcmeServiceDependencies(
             options,
             _certificateStoreMock.Object,
             _accountStoreMock.Object,
+            _orderStoreMock.Object,
             [],
             [failingHandler.Object],
             new Mock<IHttpClientFactory>().Object,

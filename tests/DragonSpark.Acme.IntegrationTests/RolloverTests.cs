@@ -23,7 +23,8 @@ public class RolloverTests
             CertificateAuthority = new Uri(PebbleDirectory),
             Email = "rollover-test@example.com",
             TermsOfServiceAgreed = true,
-            KeyAlgorithm = KeyAlgorithmType.ES256
+            KeyAlgorithm = KeyAlgorithmType.ES256,
+            CertificatePassword = "SuperSafePassword123!"
         }));
 
         services.AddLogging(l => l.AddConsole());
@@ -34,6 +35,7 @@ public class RolloverTests
             (_, _, _, _) => Task.CompletedTask));
 
         services.AddSingleton<IAccountStore>(accountStore);
+        services.AddSingleton<IOrderStore, FileSystemOrderStore>();
         services.AddSingleton<IChallengeHandler>(sp => ActivatorUtilities.CreateInstance<Http01ChallengeHandler>(sp));
 
         services.AddHttpClient("Acme")

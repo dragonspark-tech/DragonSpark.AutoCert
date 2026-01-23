@@ -1,4 +1,5 @@
 using DragonSpark.Acme.Abstractions;
+using DragonSpark.Acme.Helpers;
 using Microsoft.Extensions.Options;
 
 namespace DragonSpark.Acme.Stores;
@@ -7,7 +8,7 @@ namespace DragonSpark.Acme.Stores;
 ///     A file-system based implementation of <see cref="IAccountStore" />.
 ///     Saves the account key as 'account.pem' in the configured certificate path.
 /// </summary>
-public class FileSystemAccountStore(IOptions<AcmeOptions> options) : IAccountStore
+public class FileSystemAccountStore(IOptions<AcmeOptions> options, AccountKeyCipher cipher) : IAccountStore
 {
     private const string FileName = "account.pem";
     private readonly AcmeOptions _options = options.Value;
@@ -18,7 +19,8 @@ public class FileSystemAccountStore(IOptions<AcmeOptions> options) : IAccountSto
         var path = Path.Combine(_options.CertificatePath, FileName);
         if (!File.Exists(path)) return null;
 
-        return await File.ReadAllTextAsync(path, cancellationToken);
+        var content = await File.ReadAllTextAsync(path, cancellationToken);
+        return cipher.Decrypt(content);
     }
 
     /// <inheritdoc />
@@ -28,6 +30,7 @@ public class FileSystemAccountStore(IOptions<AcmeOptions> options) : IAccountSto
         if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
         var path = Path.Combine(directory, FileName);
-        await File.WriteAllTextAsync(path, pemKey, cancellationToken);
+        var encrypted = cipher.Encrypt(pemKey);
+        await File.WriteAllTextAsync(path, encrypted, cancellationToken);
     }
 }

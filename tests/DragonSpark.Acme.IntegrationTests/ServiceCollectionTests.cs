@@ -17,6 +17,7 @@ public class ServiceCollectionTests
         {
             options.Email = "test@example.com";
             options.CertificateAuthority = new Uri("https://example.com");
+            options.CertificatePassword = "SuperSafePassword123!";
         });
 
         // Act

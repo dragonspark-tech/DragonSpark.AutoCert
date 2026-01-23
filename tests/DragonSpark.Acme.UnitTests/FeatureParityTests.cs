@@ -53,10 +53,12 @@ public class FeatureParityTests
 
         services.AddLogging();
         services.AddHttpClient();
-        services.AddSingleton(Options.Create(new AcmeOptions { Email = "test@test.com" }));
+        services.AddSingleton(Options.Create(new AcmeOptions
+            { Email = "test@test.com", CertificatePassword = "StrongTestPassword123!" }));
         services.AddSingleton(new Mock<IChallengeStore>().Object);
         services.AddSingleton(new Mock<ICertificateStore>().Object);
         services.AddSingleton(new Mock<IAccountStore>().Object);
+        services.AddSingleton(new Mock<IOrderStore>().Object);
         services.AddSingleton(new Mock<ILockProvider>().Object);
         services.AddSingleton(hookMock.Object);
         services.AddSingleton<AcmeServiceDependencies>();
@@ -79,11 +81,13 @@ public class FeatureParityTests
         services.AddSingleton(Options.Create(new AcmeOptions
         {
             Email = "test@test.com",
-            KeyAlgorithm = KeyAlgorithmType.RS256
+            KeyAlgorithm = KeyAlgorithmType.RS256,
+            CertificatePassword = "StrongTestPassword123!"
         }));
         services.AddSingleton(new Mock<IChallengeStore>().Object);
         services.AddSingleton(new Mock<ICertificateStore>().Object);
         services.AddSingleton(new Mock<IAccountStore>().Object);
+        services.AddSingleton(new Mock<IOrderStore>().Object);
         services.AddSingleton(new Mock<ILockProvider>().Object);
         services.AddSingleton(new Mock<ICertificateLifecycle>().Object);
         services.AddSingleton<AcmeServiceDependencies>();

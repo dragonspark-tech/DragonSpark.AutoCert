@@ -13,7 +13,7 @@
    <img alt="Quality Gate" src="https://img.shields.io/sonar/coverage/dragonspark-tech_DragonSpark.Acme?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
 </p>
 
-> A modern, lightweight, and extensible ACME (Let's Encrypt) client for .NET 10+.
+> A modern, lightweight, and extensible ACME e.g., (Let's Encrypt) client for .NET 10+.
 
 ## 🧩 Features
 
@@ -36,6 +36,7 @@
 Install the NuGet package:
 
 ```bash
+dotnet add package DragonSpark.Acme
 dotnet add package DragonSpark.AspNetCore.Acme
 ```
 
@@ -51,6 +52,7 @@ dotnet add package DragonSpark.AspNetCore.Acme
     {
         options.Email = "admin@example.com";
         options.TermsOfServiceAgreed = true;
+        options.CertificatePassword = "StrongPassword123!@#";
     })
     .AddFileSystemStore(".letsencrypt"); // Store certs in a local folder
     ```
@@ -79,12 +81,14 @@ You can configure options via `appsettings.json`:
     "TermsOfServiceAgreed": true,
     "CertificateAuthority": "https://acme-staging-v02.api.letsencrypt.org/directory",
     "ValidationTimeout": "00:01:00",
-    "ValidationTimeout": "00:01:00",
-    "CertificatePassword": "ultra-secure-password",
+    "CertificatePassword": "StrongPassword123!@#", // MUST be at least 8 chars
     "KeyAlgorithm": "ES256" // ES256, ES384, RS256
   }
 }
 ```
+
+> [!WARNING]
+> **Security Requirement**: `CertificatePassword` MUST be set and be at least 8 characters long. The application will throw an exception at startup if this requirement is not met.
 
 ## Advanced Usage
 
@@ -102,7 +106,16 @@ builder.Services.AddAcme(...)
 ```csharp
 builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost");
 builder.Services.AddAcme(...)
-    .PersistToDistributedCache();
+    .PersistToDistributedCache(); // Also registers DistributedOrderStore for process resilience
+```
+
+**Layered Persistence (Hybrid):**
+
+Use a distributed cache for speed and a persistent store (FileSystem/EF) for durability.
+
+```csharp
+builder.Services.AddAcme(...)
+    .UseLayeredPersistence(); // Configures Redis as L1, FileSystem as L2
 ```
 
 ### Lifecycle Hooks

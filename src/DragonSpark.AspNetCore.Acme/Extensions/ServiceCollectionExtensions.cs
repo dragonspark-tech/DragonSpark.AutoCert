@@ -1,5 +1,6 @@
 using DragonSpark.Acme;
 using DragonSpark.Acme.Abstractions;
+using DragonSpark.Acme.Helpers;
 using DragonSpark.Acme.Services;
 using DragonSpark.Acme.Stores;
 using DragonSpark.AspNetCore.Acme.Https;
@@ -28,10 +29,11 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<AcmeChallengeMiddleware>();
         services.TryAddSingleton<AcmeCertificateSelector>();
 
+        services.TryAddSingleton<AccountKeyCipher>();
         services.TryAddSingleton<ICertificateStore, FileSystemCertificateStore>();
         services.TryAddSingleton<IChallengeStore, MemoryChallengeStore>();
         services.TryAddSingleton<IAccountStore, FileSystemAccountStore>();
-        services.TryAddSingleton<IAccountStore, FileSystemAccountStore>();
+        services.TryAddSingleton<IOrderStore, FileSystemOrderStore>();
         services.TryAddSingleton<AcmeServiceDependencies>();
         services.TryAddSingleton<IAcmeService, AcmeService>();
         services.TryAddSingleton<AcmeDiagnosticsService>();
@@ -57,6 +59,8 @@ internal class AcmeBuilder(IServiceCollection services) : IAcmeBuilder
     {
         Services.Replace(ServiceDescriptor.Singleton<IChallengeStore, DistributedChallengeStore>());
         Services.Replace(ServiceDescriptor.Singleton<ICertificateStore, DistributedCertificateStore>());
+        Services.Replace(ServiceDescriptor.Singleton<IAccountStore, DistributedAccountStore>());
+        Services.Replace(ServiceDescriptor.Singleton<IOrderStore, DistributedOrderStore>());
         return this;
     }
 
@@ -69,6 +73,15 @@ internal class AcmeBuilder(IServiceCollection services) : IAcmeBuilder
             new LayeredCertificateStore(
                 sp.GetRequiredKeyedService<ICertificateStore>("Cache"),
                 sp.GetRequiredKeyedService<ICertificateStore>("Persistence")
+            )));
+
+        Services.AddKeyedSingleton<IAccountStore, DistributedAccountStore>("Cache");
+        Services.AddKeyedSingleton<IAccountStore, FileSystemAccountStore>("Persistence");
+
+        Services.Replace(ServiceDescriptor.Singleton<IAccountStore>(sp =>
+            new LayeredAccountStore(
+                sp.GetRequiredKeyedService<IAccountStore>("Cache"),
+                sp.GetRequiredKeyedService<IAccountStore>("Persistence")
             )));
 
         return this;
