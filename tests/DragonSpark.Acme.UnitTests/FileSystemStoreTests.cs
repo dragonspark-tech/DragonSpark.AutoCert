@@ -42,6 +42,40 @@ public sealed class FileSystemStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task AccountStore_Load_ReturnsNull_WhenFileDoesNotExist()
+    {
+        // Arrange
+        var cipher = new AccountKeyCipher(_options);
+        var store = new FileSystemAccountStore(_options, cipher);
+
+        // Act
+        var result = await store.LoadAccountKeyAsync(CancellationToken.None);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task AccountStore_Save_CreatesDirectoryIfMissing()
+    {
+        // Arrange
+        var directory = Path.Combine(_tempPath, "subdir");
+        var options = Options.Create(new AcmeOptions { CertificatePath = directory, CertificatePassword = "password" });
+        var cipher = new AccountKeyCipher(options);
+        var store = new FileSystemAccountStore(options, cipher);
+
+        // Act
+        await store.SaveAccountKeyAsync("key", CancellationToken.None);
+
+        // Assert
+        Assert.True(Directory.Exists(directory));
+        Assert.True(File.Exists(Path.Combine(directory, "account.pem")));
+
+        // Cleanup
+        Directory.Delete(directory, true);
+    }
+
+    [Fact]
     public async Task CertificateStore_SaveAndGet_ReturnsCertificate()
     {
         // Arrange
@@ -79,5 +113,72 @@ public sealed class FileSystemStoreTests : IDisposable
         // Assert
         Assert.Null(loadedCert);
         Assert.False(File.Exists(Path.Combine(_tempPath, $"{domain}.pfx")));
+    }
+
+    [Fact]
+    public async Task OrderStore_SaveAndGet_ReturnsOrder()
+    {
+        // Arrange
+        var store = new FileSystemOrderStore(_options);
+        const string domain = "order.example.com";
+        const string orderUri = "https://acme.org/order/1";
+
+        // Act
+        await store.SaveOrderAsync(domain, orderUri, CancellationToken.None);
+        var loadedOrder = await store.GetOrderAsync(domain, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(orderUri, loadedOrder);
+        Assert.True(File.Exists(Path.Combine(_tempPath, "Orders", $"{domain}.order")));
+    }
+
+    [Fact]
+    public async Task OrderStore_GetMissing_ReturnsNull()
+    {
+        // Arrange
+        var store = new FileSystemOrderStore(_options);
+        const string domain = "missing.example.com";
+
+        // Act
+        var loadedOrder = await store.GetOrderAsync(domain, CancellationToken.None);
+
+        // Assert
+        Assert.Null(loadedOrder);
+    }
+
+    [Fact]
+    public async Task OrderStore_Delete_RemovesFile()
+    {
+        // Arrange
+        var store = new FileSystemOrderStore(_options);
+        const string domain = "delete-order.example.com";
+        const string orderUri = "https://acme.org/order/2";
+        await store.SaveOrderAsync(domain, orderUri, CancellationToken.None);
+
+        // Act
+        await store.DeleteOrderAsync(domain, CancellationToken.None);
+        var loadedOrder = await store.GetOrderAsync(domain, CancellationToken.None);
+
+        // Assert
+        Assert.Null(loadedOrder);
+        Assert.False(File.Exists(Path.Combine(_tempPath, "Orders", $"{domain}.order")));
+    }
+
+    [Fact]
+    public async Task OrderStore_DeleteMissing_DoesNotThrow()
+    {
+        // Arrange
+        var store = new FileSystemOrderStore(_options);
+        const string domain = "delete-missing.example.com";
+
+        // Act & Assert
+        try
+        {
+            await store.DeleteOrderAsync(domain, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"DeleteOrderAsync threw exception: {ex.Message}");
+        }
     }
 }

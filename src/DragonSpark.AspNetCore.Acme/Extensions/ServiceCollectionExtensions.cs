@@ -34,6 +34,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IChallengeStore, MemoryChallengeStore>();
         services.TryAddSingleton<IAccountStore, FileSystemAccountStore>();
         services.TryAddSingleton<IOrderStore, FileSystemOrderStore>();
+        services.TryAddSingleton<AcmeStores>();
         services.TryAddSingleton<AcmeServiceDependencies>();
         services.TryAddSingleton<IAcmeService, AcmeService>();
         services.TryAddSingleton<AcmeDiagnosticsService>();
@@ -66,22 +67,25 @@ internal class AcmeBuilder(IServiceCollection services) : IAcmeBuilder
 
     public IAcmeBuilder UseLayeredPersistence()
     {
-        Services.AddKeyedSingleton<ICertificateStore, DistributedCertificateStore>("Cache");
-        Services.AddKeyedSingleton<ICertificateStore, FileSystemCertificateStore>("Persistence");
+        const string cacheKey = "Cache";
+        const string persistenceKey = "Persistence";
+
+        Services.AddKeyedSingleton<ICertificateStore, DistributedCertificateStore>(cacheKey);
+        Services.AddKeyedSingleton<ICertificateStore, FileSystemCertificateStore>(persistenceKey);
 
         Services.Replace(ServiceDescriptor.Singleton<ICertificateStore>(sp =>
             new LayeredCertificateStore(
-                sp.GetRequiredKeyedService<ICertificateStore>("Cache"),
-                sp.GetRequiredKeyedService<ICertificateStore>("Persistence")
+                sp.GetRequiredKeyedService<ICertificateStore>(cacheKey),
+                sp.GetRequiredKeyedService<ICertificateStore>(persistenceKey)
             )));
 
-        Services.AddKeyedSingleton<IAccountStore, DistributedAccountStore>("Cache");
-        Services.AddKeyedSingleton<IAccountStore, FileSystemAccountStore>("Persistence");
+        Services.AddKeyedSingleton<IAccountStore, DistributedAccountStore>(cacheKey);
+        Services.AddKeyedSingleton<IAccountStore, FileSystemAccountStore>(persistenceKey);
 
         Services.Replace(ServiceDescriptor.Singleton<IAccountStore>(sp =>
             new LayeredAccountStore(
-                sp.GetRequiredKeyedService<IAccountStore>("Cache"),
-                sp.GetRequiredKeyedService<IAccountStore>("Persistence")
+                sp.GetRequiredKeyedService<IAccountStore>(cacheKey),
+                sp.GetRequiredKeyedService<IAccountStore>(persistenceKey)
             )));
 
         return this;

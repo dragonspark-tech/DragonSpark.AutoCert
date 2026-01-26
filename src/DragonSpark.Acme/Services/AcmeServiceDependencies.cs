@@ -1,3 +1,5 @@
+#pragma warning disable S6672
+
 using DragonSpark.Acme.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -5,15 +7,13 @@ using Microsoft.Extensions.Options;
 namespace DragonSpark.Acme.Services;
 
 /// <summary>
-///     Grouped dependencies for <see cref="AcmeService" /> to avoid long constructor parameter lists.
+///     Grouped dependencies for <see cref="AcmeService" />.
 /// </summary>
 public record AcmeServiceDependencies
 {
     public AcmeServiceDependencies(
         IOptions<AcmeOptions> options,
-        ICertificateStore certificateStore,
-        IAccountStore accountStore,
-        IOrderStore orderStore,
+        AcmeStores stores,
         IEnumerable<ICertificateLifecycle> lifecycleHooks,
         IEnumerable<IChallengeHandler> challengeHandlers,
         IHttpClientFactory httpClientFactory,
@@ -26,9 +26,7 @@ public record AcmeServiceDependencies
                 "AcmeOptions.CertificatePassword must be set and be at least 8 characters long for security reasons.");
 
         Options = options;
-        CertificateStore = certificateStore;
-        AccountStore = accountStore;
-        OrderStore = orderStore;
+        Stores = stores;
         LifecycleHooks = lifecycleHooks;
         ChallengeHandlers = challengeHandlers;
         HttpClientFactory = httpClientFactory;
@@ -37,9 +35,7 @@ public record AcmeServiceDependencies
     }
 
     public IOptions<AcmeOptions> Options { get; }
-    public ICertificateStore CertificateStore { get; }
-    public IAccountStore AccountStore { get; }
-    public IOrderStore OrderStore { get; }
+    public AcmeStores Stores { get; }
     public IEnumerable<ICertificateLifecycle> LifecycleHooks { get; }
     public IEnumerable<IChallengeHandler> ChallengeHandlers { get; }
     public IHttpClientFactory HttpClientFactory { get; }

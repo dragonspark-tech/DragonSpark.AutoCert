@@ -46,6 +46,7 @@ public class RolloverTests
 
         services.AddSingleton<ILockProvider, FileSystemLockProvider>();
 
+        services.AddSingleton<AcmeStores>();
         services.AddSingleton<AcmeServiceDependencies>();
         services.AddSingleton<AcmeService>();
 

@@ -63,4 +63,18 @@ public class AccountKeyCipherTests
         var invalid = "not-encrypted-and-not-pem";
         Assert.Throws<CryptographicException>(() => _cipher.Decrypt(invalid));
     }
+
+    [Fact]
+    public void Encrypt_ShouldReturnInput_WhenInputIsNullOrEmpty()
+    {
+        Assert.Equal("", _cipher.Encrypt(""));
+        Assert.Null(_cipher.Encrypt(null!));
+    }
+
+    [Fact]
+    public void Decrypt_ShouldReturnInput_WhenInputIsNullOrEmpty()
+    {
+        Assert.Equal("", _cipher.Decrypt(""));
+        Assert.Null(_cipher.Decrypt(null!));
+    }
 }

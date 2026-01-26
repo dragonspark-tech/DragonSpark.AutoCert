@@ -6,3 +6,5 @@ riderModule.iml
 .vs/
 .sonarqube
 coverage/
+coverage*.xml
+test*.txt

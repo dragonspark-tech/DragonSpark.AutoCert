@@ -16,15 +16,15 @@ namespace DragonSpark.Acme.Services;
 public partial class AcmeService(
     AcmeServiceDependencies dependencies) : IAcmeService
 {
-    private readonly IAccountStore _accountStore = dependencies.AccountStore;
-    private readonly ICertificateStore _certificateStore = dependencies.CertificateStore;
+    private readonly IAccountStore _accountStore = dependencies.Stores.AccountStore;
+    private readonly ICertificateStore _certificateStore = dependencies.Stores.CertificateStore;
     private readonly IEnumerable<IChallengeHandler> _challengeHandlers = dependencies.ChallengeHandlers;
     private readonly IHttpClientFactory _httpClientFactory = dependencies.HttpClientFactory;
     private readonly IEnumerable<ICertificateLifecycle> _lifecycleHooks = dependencies.LifecycleHooks;
     private readonly ILockProvider _lockProvider = dependencies.LockProvider;
     private readonly ILogger<AcmeService> _logger = dependencies.Logger;
     private readonly AcmeOptions _options = dependencies.Options.Value;
-    private readonly IOrderStore _orderStore = dependencies.OrderStore;
+    private readonly IOrderStore _orderStore = dependencies.Stores.OrderStore;
 
     /// <inheritdoc />
     public async Task OrderCertificateAsync(IEnumerable<string> domains, CancellationToken cancellationToken = default)
@@ -33,7 +33,8 @@ public partial class AcmeService(
         if (domainList.Count == 0)
             throw new ArgumentException("At least one domain must be specified.", nameof(domains));
 
-        await using var _ = await _lockProvider.AcquireLockAsync($"cert:{domainList[0]}", cancellationToken);
+        var primaryDomain = domainList[0];
+        await using var _ = await _lockProvider.AcquireLockAsync($"cert:{primaryDomain}", cancellationToken);
 
         // ReSharper disable once ExplicitCallerInfoArgument
         using var activity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.OrderCertificate");
@@ -42,115 +43,23 @@ public partial class AcmeService(
 
         LogStartingCertificateOrderForDomains(string.Join(", ", domainList));
 
-        var accountKeyPem = await _accountStore.LoadAccountKeyAsync(cancellationToken);
-        IAcmeContext acme;
-
-        if (!string.IsNullOrEmpty(accountKeyPem))
-        {
-            LogRestoringExistingAcmeAccount();
-            var accountKey = KeyFactory.FromPem(accountKeyPem);
-            acme = CreateContext(accountKey);
-            await acme.Account();
-        }
-        else
-        {
-            acme = CreateContext();
-
-            if (!string.IsNullOrEmpty(_options.AccountKeyId) && !string.IsNullOrEmpty(_options.AccountHmacKey))
-            {
-                LogUsingExternalAccountBindingEab();
-                await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed,
-                    _options.AccountKeyId,
-                    _options.AccountHmacKey);
-            }
-            else
-            {
-                LogCreatingNewAcmeAccountForEmail(_options.Email);
-                await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed);
-            }
-
-            LogSavingNewAcmeAccountKey();
-            await _accountStore.SaveAccountKeyAsync(acme.AccountKey.ToPem(), cancellationToken);
-        }
-
-        var primaryDomain = domainList[0];
-        IOrderContext order;
-
-        var existingOrderUri = await _orderStore.GetOrderAsync(primaryDomain, cancellationToken);
-        if (!string.IsNullOrEmpty(existingOrderUri))
-        {
-            LogFoundExistingOrderResuming(existingOrderUri);
-            order = acme.Order(new Uri(existingOrderUri));
-            try
-            {
-                var resource = await order.Resource();
-                if (resource.Status == OrderStatus.Invalid)
-                {
-                    LogExistingOrderInvalidCreatingNew();
-                    order = await acme.NewOrder(domainList);
-                    await _orderStore.SaveOrderAsync(primaryDomain, order.Location.ToString(), cancellationToken);
-                }
-            }
-            catch (Exception ex)
-            {
-                LogFailedToLoadExistingOrderCreatingNew(ex);
-                order = await acme.NewOrder(domainList);
-                await _orderStore.SaveOrderAsync(primaryDomain, order.Location.ToString(), cancellationToken);
-            }
-        }
-        else
-        {
-            LogCreatingNewOrder();
-            order = await acme.NewOrder(domainList);
-            await _orderStore.SaveOrderAsync(primaryDomain, order.Location.ToString(), cancellationToken);
-        }
+        var acme = await GetOrCreateAccountAsync(cancellationToken);
+        var order = await GetOrCreateOrderAsync(acme, domainList, cancellationToken);
 
         // ReSharper disable once ExplicitCallerInfoArgument
         using (var validationActivity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.ValidateChallenges"))
         {
-            var authzs = await order.Authorizations();
-            await ValidateAuthorizationsAsync(authzs, validationActivity, cancellationToken);
+            await ValidateOrderAuthorizationsAsync(order, validationActivity, cancellationToken);
         }
 
         LogFinalizingOrder();
 
-        var privateKey = KeyFactory.NewKey(GetKeyAlgorithm());
+        var (_, cert) = await FinalizeAndDownloadCertificateAsync(order, primaryDomain);
 
-        // ReSharper disable once ExplicitCallerInfoArgument
-        using var finalizeActivity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.FinalizeOrder");
-        var certChain = await order.Generate(new CsrInfo
-        {
-            CountryName = _options.CsrInfo.CountryName,
-            State = _options.CsrInfo.State,
-            Locality = _options.CsrInfo.Locality,
-            Organization = _options.CsrInfo.Organization,
-            OrganizationUnit = _options.CsrInfo.OrganizationUnit,
-            CommonName = domainList[0]
-        }, privateKey);
-
-        var pfxBuilder = certChain.ToPfx(privateKey);
-        var pfxBytes = pfxBuilder.Build(domainList[0], _options.CertificatePassword);
-
-        var cert = CertificateLoaderHelper.LoadFromBytes(pfxBytes, _options.CertificatePassword);
-
-        foreach (var domain in domainList)
-        {
-            LogSavingCertificateForDomain(domain);
-            await _certificateStore.SaveCertificateAsync(domain, cert, cancellationToken);
-        }
-
-        foreach (var hook in _lifecycleHooks)
-            try
-            {
-                await hook.OnCertificateCreatedAsync(domainList[0], cert, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                LogErrorExecutingLifecycleHook(hook.GetType().Name, ex);
-            }
+        await SaveAndNotifyCertificateAsync(domainList, cert, cancellationToken);
 
         LogCertificateSuccessfullyOrderedAndStored();
-        await _orderStore.DeleteOrderAsync(domainList[0], cancellationToken);
+        await _orderStore.DeleteOrderAsync(primaryDomain, cancellationToken);
         AcmeDiagnostics.CertificatesRenewed.Add(1);
     }
 
@@ -211,6 +120,131 @@ public partial class AcmeService(
 
         LogKeyChangeSuccessfulSavingNewAccountKey();
         await _accountStore.SaveAccountKeyAsync(newKey.ToPem(), cancellationToken);
+    }
+
+    private async Task<IAcmeContext> GetOrCreateAccountAsync(CancellationToken cancellationToken)
+    {
+        var accountKeyPem = await _accountStore.LoadAccountKeyAsync(cancellationToken);
+        IAcmeContext acme;
+
+        if (!string.IsNullOrEmpty(accountKeyPem))
+        {
+            LogRestoringExistingAcmeAccount();
+            var accountKey = KeyFactory.FromPem(accountKeyPem);
+            acme = CreateContext(accountKey);
+            await acme.Account();
+        }
+        else
+        {
+            acme = CreateContext();
+
+            if (!string.IsNullOrEmpty(_options.AccountKeyId) && !string.IsNullOrEmpty(_options.AccountHmacKey))
+            {
+                LogUsingExternalAccountBindingEab();
+                await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed,
+                    _options.AccountKeyId,
+                    _options.AccountHmacKey);
+            }
+            else
+            {
+                LogCreatingNewAcmeAccountForEmail(_options.Email);
+                await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed);
+            }
+
+            LogSavingNewAcmeAccountKey();
+            await _accountStore.SaveAccountKeyAsync(acme.AccountKey.ToPem(), cancellationToken);
+        }
+
+        return acme;
+    }
+
+    private async Task<IOrderContext> GetOrCreateOrderAsync(IAcmeContext acme, List<string> domainList,
+        CancellationToken cancellationToken)
+    {
+        var primaryDomain = domainList[0];
+        IOrderContext order;
+
+        var existingOrderUri = await _orderStore.GetOrderAsync(primaryDomain, cancellationToken);
+        if (!string.IsNullOrEmpty(existingOrderUri))
+        {
+            LogFoundExistingOrderResuming(existingOrderUri);
+            order = acme.Order(new Uri(existingOrderUri));
+            try
+            {
+                var resource = await order.Resource();
+                if (resource.Status == OrderStatus.Invalid)
+                {
+                    LogExistingOrderInvalidCreatingNew();
+                    order = await acme.NewOrder(domainList);
+                    await _orderStore.SaveOrderAsync(primaryDomain, order.Location.ToString(), cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogFailedToLoadExistingOrderCreatingNew(ex);
+                order = await acme.NewOrder(domainList);
+                await _orderStore.SaveOrderAsync(primaryDomain, order.Location.ToString(), cancellationToken);
+            }
+        }
+        else
+        {
+            LogCreatingNewOrder();
+            order = await acme.NewOrder(domainList);
+            await _orderStore.SaveOrderAsync(primaryDomain, order.Location.ToString(), cancellationToken);
+        }
+
+        return order;
+    }
+
+    private async Task ValidateOrderAuthorizationsAsync(IOrderContext order, Activity? activity,
+        CancellationToken cancellationToken)
+    {
+        var authzs = await order.Authorizations();
+        await ValidateAuthorizationsAsync(authzs, activity, cancellationToken);
+    }
+
+    private async Task<(IKey PrivateKey, X509Certificate2 Cert)> FinalizeAndDownloadCertificateAsync(
+        IOrderContext order, string commonName)
+    {
+        var privateKey = KeyFactory.NewKey(GetKeyAlgorithm());
+
+        // ReSharper disable once ExplicitCallerInfoArgument
+        using var finalizeActivity = AcmeDiagnostics.ActivitySource.StartActivity("AcmeService.FinalizeOrder");
+        var certChain = await order.Generate(new CsrInfo
+        {
+            CountryName = _options.CsrInfo.CountryName,
+            State = _options.CsrInfo.State,
+            Locality = _options.CsrInfo.Locality,
+            Organization = _options.CsrInfo.Organization,
+            OrganizationUnit = _options.CsrInfo.OrganizationUnit,
+            CommonName = commonName
+        }, privateKey);
+
+        var pfxBuilder = certChain.ToPfx(privateKey);
+        var pfxBytes = pfxBuilder.Build(commonName, _options.CertificatePassword);
+
+        var cert = CertificateLoaderHelper.LoadFromBytes(pfxBytes, _options.CertificatePassword);
+        return (privateKey, cert);
+    }
+
+    private async Task SaveAndNotifyCertificateAsync(List<string> domainList, X509Certificate2 cert,
+        CancellationToken cancellationToken)
+    {
+        foreach (var domain in domainList)
+        {
+            LogSavingCertificateForDomain(domain);
+            await _certificateStore.SaveCertificateAsync(domain, cert, cancellationToken);
+        }
+
+        foreach (var hook in _lifecycleHooks)
+            try
+            {
+                await hook.OnCertificateCreatedAsync(domainList[0], cert, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                LogErrorExecutingLifecycleHook(hook.GetType().Name, ex);
+            }
     }
 
     protected virtual IAcmeContext CreateContext(IKey? accountKey = null)
