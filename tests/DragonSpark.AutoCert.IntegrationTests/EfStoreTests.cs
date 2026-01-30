@@ -35,6 +35,8 @@ public class EfStoreTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
+        GC.SuppressFinalize(this);
+        
         await _dbContext.Database.EnsureDeletedAsync();
         await _dbContext.DisposeAsync();
     }

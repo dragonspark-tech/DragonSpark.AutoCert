@@ -38,31 +38,34 @@ public static class AutoCertEntityFrameworkExtensions
     public static IAutoCertBuilder UseHybridPersistence<TContext>(this IAutoCertBuilder builder)
         where TContext : DbContext
     {
+        const string cacheKey = "Cache";
+        const string persistenceKey = "Persistence";
+        
         // 1. Register Scoped EF implementations (used by Singleton Wrappers)
         builder.Services.TryAddScoped<EfCertificateStore<TContext>>();
         builder.Services.TryAddScoped<EfAccountStore<TContext>>();
 
         // 2. Register Layer 1: Cache (Redis/Distributed)
-        builder.Services.AddKeyedSingleton<ICertificateStore, DistributedCertificateStore>("Cache");
-        builder.Services.AddKeyedSingleton<IAccountStore, DistributedAccountStore>("Cache");
+        builder.Services.AddKeyedSingleton<ICertificateStore, DistributedCertificateStore>(cacheKey);
+        builder.Services.AddKeyedSingleton<IAccountStore, DistributedAccountStore>(cacheKey);
         // Also cache challenges if using Distributed
         builder.Services.Replace(ServiceDescriptor.Singleton<IChallengeStore, DistributedChallengeStore>());
 
         // 3. Register Layer 2: Persistence (EF Singleton Wrapper)
-        builder.Services.AddKeyedSingleton<ICertificateStore, SingletonEfCertificateStore<TContext>>("Persistence");
-        builder.Services.AddKeyedSingleton<IAccountStore, SingletonEfAccountStore<TContext>>("Persistence");
+        builder.Services.AddKeyedSingleton<ICertificateStore, SingletonEfCertificateStore<TContext>>(persistenceKey);
+        builder.Services.AddKeyedSingleton<IAccountStore, SingletonEfAccountStore<TContext>>(persistenceKey);
 
         // 4. Register Layered Stores as Primary
         builder.Services.Replace(ServiceDescriptor.Singleton<ICertificateStore>(sp =>
             new LayeredCertificateStore(
-                sp.GetRequiredKeyedService<ICertificateStore>("Cache"),
-                sp.GetRequiredKeyedService<ICertificateStore>("Persistence")
+                sp.GetRequiredKeyedService<ICertificateStore>(cacheKey),
+                sp.GetRequiredKeyedService<ICertificateStore>(persistenceKey)
             )));
 
         builder.Services.Replace(ServiceDescriptor.Singleton<IAccountStore>(sp =>
             new LayeredAccountStore(
-                sp.GetRequiredKeyedService<IAccountStore>("Cache"),
-                sp.GetRequiredKeyedService<IAccountStore>("Persistence")
+                sp.GetRequiredKeyedService<IAccountStore>(cacheKey),
+                sp.GetRequiredKeyedService<IAccountStore>(persistenceKey)
             )));
 
         return builder;
