@@ -1,74 +1,96 @@
 <h1 align="center">
-  DragonSpark ACME
+  DragonSpark AutoCert
 </h1>
 
 <p align="center">
-    <img alt="License" src="https://img.shields.io/github/license/dragonspark-tech/DragonSpark.Acme?style=for-the-badge&color=blue">
+    <img alt="License" src="https://img.shields.io/github/license/dragonspark-tech/DragonSpark.AutoCert?style=for-the-badge&color=blue">
 </p>
 
 <p align="center">
-   <img alt="Quality Gate" src="https://img.shields.io/sonar/quality_gate/dragonspark-tech_DragonSpark.Acme?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
-   <img alt="Quality Gate" src="https://img.shields.io/sonar/tech_debt/dragonspark-tech_DragonSpark.Acme?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
-   <img alt="Quality Gate" src="https://img.shields.io/sonar/violations/dragonspark-tech_DragonSpark.Acme?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
-   <img alt="Quality Gate" src="https://img.shields.io/sonar/coverage/dragonspark-tech_DragonSpark.Acme?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
+   <img alt="Quality Gate" src="https://img.shields.io/sonar/quality_gate/dragonspark-tech_DragonSpark.AutoCert?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
+   <img alt="Quality Gate" src="https://img.shields.io/sonar/tech_debt/dragonspark-tech_DragonSpark.AutoCert?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
+   <img alt="Quality Gate" src="https://img.shields.io/sonar/violations/dragonspark-tech_DragonSpark.AutoCert?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
+   <img alt="Quality Gate" src="https://img.shields.io/sonar/coverage/dragonspark-tech_DragonSpark.AutoCert?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonar">
 </p>
 
 > A modern, lightweight, and extensible ACME e.g., (Let's Encrypt) client for .NET 10+.
+
+## 📖 Overview
+
+DragonSpark.AutoCert is designed to make HTTPS automatic and effortless for .NET applications. Whether you are running a single service on a VPS or a complex microservices architecture in Kubernetes, this library handles the entire certificate lifecycle—ordering, validation, installation, and renewal—without manual intervention.
+
+It bridges the gap between simple "set and forget" tools and enterprise requirements, offering robust distributed locking, clustering support, and comprehensive observability out of the box.
 
 ## 🧩 Features
 
 - **Automatic Certificate Management**: Automatically orders, validates, and installs SSL certificates from Let's Encrypt.
 - **Background Renewal**: Built-in background service monitors processing and renewing certificates before they expire.
-- **Enterprise Ready**:
-  - **Distributed Caching**: Support for Redis/SQL Server distributed caches for persistence.
-  - **Entity Framework Core**: Store certificates and accounts in your database.
-  - **Lifecycle Hooks**: React to new certificates (e.g., notify a cluster, reload separate services).
+- **Enterprise Grade**:
+  - **Clustering Ready**: Native support for Redis and SQL Server distributed caching ensures seamless operation in load-balanced environments (Kubernetes, Web Farms).
+  - **Distributed Locking**: Robust implementation of RedLock (Redis) and FileSystem locks to prevent race conditions during certificate renewal.
+  - **Key Rollover**: Compliance-ready automated account key rotation (`RolloverAccountKeyAsync`).
 - **Flexible Architecture**:
-  - **Strategy Pattern**: Support for different challenge types (HTTP-01 implemented, extensible for DNS-01).
-  - **Feature Parity**: Inspired by `LettuceEncrypt` and `FluffySpoon` but modernized for .NET 10.
-  - **Security First**:
-    - **Account Rollover**: Securely rotate compromised account keys.
-    - **Configurable Keys**: Support for RSA (2048/4096) and ECDSA (P-256/P-384/P-521) keys.
-    - **Distributed Locking**: Prevent race conditions in clustered environments using FileSystem or Redis locks.
+  - **Strategy Pattern**: Pluggable challenge handlers (HTTP-01 built-in, ready for DNS-01).
+  - **Observability**: First-class citizen support for **OpenTelemetry**. Trace every order, validation, and renewal operation.
+  - **Security First**: Configurable key algorithms (RSA/ECDSA) and strict validation.
 
 ## ⚙️ Installation
 
-Install the NuGet package:
+Install the NuGet package (Targeting .NET 10 LTS):
 
 ```bash
-dotnet add package DragonSpark.Acme
-dotnet add package DragonSpark.AspNetCore.Acme
+dotnet add package DragonSpark.AutoCert
+dotnet add package DragonSpark.AspNetCore.AutoCert
 ```
 
 ## 🚩 Quick Start
 
-1.  **Configure Services**: Add ACME services in your `Program.cs`.
+### 1. Simple Setup (Single Server / Development)
 
-    ```csharp
-    var builder = WebApplication.CreateBuilder(args);
+Ideal for small applications running on a single server. Uses the local file system to store certificates.
 
-    // Add ACME Services
-    builder.Services.AddAcme(options =>
-    {
-        options.Email = "admin@example.com";
-        options.TermsOfServiceAgreed = true;
-        options.CertificatePassword = "StrongPassword123!@#";
-    })
-    .AddFileSystemStore(".letsencrypt"); // Store certs in a local folder
-    ```
+```csharp
+var builder = WebApplication.CreateBuilder(args);
 
-2.  **Configure Middleware**: Ensure you use HTTPS.
+// Add AutoCert Services using File System
+builder.Services.AddAutoCert(options =>
+{
+    options.Email = "admin@example.com";
+    options.TermsOfServiceAgreed = true;
+    options.CertificatePassword = "StrongPassword123!@#"; // REQUIRED for PFX export/protection
+})
+.AddFileSystemStore(".letsencrypt"); // Stores certs/keys in a local folder
+```
 
-    ```csharp
-    var app = builder.Build();
+### 2. Production Setup (Clustered / High Availability)
 
-    app.UseHttpsRedirection();
-    // ACME middleware is automatically handled by the hosted service and Kestrel integration.
+Recommended for production environments, Kubernetes, or load-balanced setups. Uses Redis for distributed storage and locking.
 
-    app.Run();
-    ```
+```csharp
+var builder = WebApplication.CreateBuilder(args);
 
-3.  **Run**: Start your application exposed to the internet on Port 80 (for HTTP-01 challenge). The library will automatically provision a certificate for your configured domains.
+// Add Redis Cache
+builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost");
+
+// Add AutoCert Services with Distributed Persistence
+builder.Services.AddAutoCert(options =>
+{
+    options.Email = "admin@example.com";
+    options.TermsOfServiceAgreed = true;
+    options.CertificatePassword = "StrongPassword123!@#"; // REQUIRED for PFX export/protection
+})
+.PersistToDistributedCache(); // Uses Redis for Accounts, Orders, and Certs
+```
+
+### 3. Run Application
+
+Ensure you use HTTPS. The library hooks into Kestrel automatically.
+
+```csharp
+var app = builder.Build();
+app.UseHttpsRedirection();
+app.Run();
+```
 
 ## Configuration
 
@@ -76,13 +98,15 @@ You can configure options via `appsettings.json`:
 
 ```json
 {
-  "Acme": {
+  "AutoCert": {
     "Email": "admin@example.com",
     "TermsOfServiceAgreed": true,
     "CertificateAuthority": "https://acme-staging-v02.api.letsencrypt.org/directory",
     "ValidationTimeout": "00:01:00",
+    "AccountKeyId": "optional-key-id",
+    "AccountHmacKey": "optional-hmac-key",
     "CertificatePassword": "StrongPassword123!@#", // MUST be at least 8 chars
-    "KeyAlgorithm": "ES256" // ES256, ES384, RS256
+    "KeyAlgorithm": "ES256" // ES256, ES384, RS256, RS4096
   }
 }
 ```
@@ -90,31 +114,57 @@ You can configure options via `appsettings.json`:
 > [!WARNING]
 > **Security Requirement**: `CertificatePassword` MUST be set and be at least 8 characters long. The application will throw an exception at startup if this requirement is not met.
 
+## 🚀 Performance & Best Practices
+
+### Optimize TLS Handshakes
+
+For high-traffic applications, fetching certificates from a distributed store (Redis/SQL) on every handshake can introduce latency. Use the **Layered Persistence** strategy with an in-memory cache for maximum performance.
+
+```csharp
+// 1. Add In-Memory Cache (L1)
+builder.Services.AddMemoryCache();
+
+// 2. Configure Distributed Cache (L2) - e.g., Redis
+builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost");
+
+// 3. Register AutoCert with Layered Store
+builder.Services.AddAutoCert(...)
+    .UseLayeredPersistence(); // Automatically uses MemoryCache as L1 and DistributedCache as L2
+```
+
+### Middleware Ordering
+
+To ensure HTTP-01 challenges are handled correctly before any redirection logic, ensure `UseAutoCertChallenge()` (if manually mapped) or the automatic middleware handling takes precedence.
+
+Since this library hooks into Kestrel directly, standard `UseHttpsRedirection` usage is generally safe, but be aware that the challenge path `/.well-known/acme-challenge/*` must remain accessible over **HTTP** (Port 80) to satisfy Let's Encrypt validators.
+
+```csharp
+var app = builder.Build();
+
+// Ensure HTTP requests to /.well-known/acme-challenge/ are NOT redirected to HTTPS
+// The library handles this automatically when using the default setup.
+app.UseHttpsRedirection();
+
+app.Run();
+```
+
 ## Advanced Usage
 
 ### Persistence Strategies
 
 **Entity Framework Custom Store:**
+Store certificates in your SQL database.
 
 ```csharp
-builder.Services.AddAcme(...)
+builder.Services.AddAutoCert(...)
     .AddEntityFrameworkStore<MyDbContext>();
 ```
 
-**Distributed Cache (Redis):**
-
-```csharp
-builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost");
-builder.Services.AddAcme(...)
-    .PersistToDistributedCache(); // Also registers DistributedOrderStore for process resilience
-```
-
 **Layered Persistence (Hybrid):**
-
-Use a distributed cache for speed and a persistent store (FileSystem/EF) for durability.
+Use a distributed cache for speed (L1) and a persistent store (FileSystem/EF) for durability (L2). This is **highly recommended** for high-performance production apps to avoid network latency during TLS handshakes.
 
 ```csharp
-builder.Services.AddAcme(...)
+builder.Services.AddAutoCert(...)
     .UseLayeredPersistence(); // Configures Redis as L1, FileSystem as L2
 ```
 
@@ -134,7 +184,7 @@ public class WebHookNotifier : ICertificateLifecycle
 }
 
 // Register
-builder.Services.AddAcme(...).AddLifecycleHook<WebHookNotifier>();
+builder.Services.AddAutoCert(...).AddLifecycleHook<WebHookNotifier>();
 ```
 
 ### Distributed Locking
@@ -145,11 +195,11 @@ Enabled by default. Stores lock files in `.locks` subdirectory.
 **Redis (Clustered):**
 Uses RedLock.net for robust distributed locking.
 
-1. Add package `DragonSpark.Acme.Redis`.
+1. Add package `DragonSpark.AutoCert.Redis`.
 2. Configure:
 
 ```csharp
-builder.Services.AddAcme(...)
+builder.Services.AddAutoCert(...)
     .AddRedisLock("localhost:6379");
 ```
 
@@ -162,33 +212,24 @@ Rotate your account key securely:
 await acmeService.RolloverAccountKeyAsync(cancellationToken);
 ```
 
-### Functional Persistence
-
-For quick/simple scenarios, use delegates instead of classes:
-
-````csharp
-builder.Services.AddAcme(...)
-    .AddCertificateStore(
-        load: (domain, token) => AzureKeyVault.GetSecretAsync(domain),
-        save: (domain, cert, token) => AzureKeyVault.SetSecretAsync(domain, cert)
-    );
-
 ### DNS-01 Challenge Support
+
 Support for wildcard certificates using DNS validation.
 
 1. Implement `IDnsProvider`:
+
 ```csharp
 public class MyDnsProvider : IDnsProvider
 {
     public Task CreateTxtRecordAsync(string name, string value, CancellationToken token) { ... }
     public Task DeleteTxtRecordAsync(string name, string value, CancellationToken token) { ... }
 }
-````
+```
 
 2. Register and configure:
 
 ```csharp
-builder.Services.AddAcme(o => o.DnsPropagationDelay = TimeSpan.FromSeconds(60))
+builder.Services.AddAutoCert(o => o.DnsPropagationDelay = TimeSpan.FromSeconds(60))
     .AddDnsProvider<MyDnsProvider>();
 ```
 
@@ -196,9 +237,9 @@ builder.Services.AddAcme(o => o.DnsPropagationDelay = TimeSpan.FromSeconds(60))
 
 The library supports OpenTelemetry for tracing and metrics:
 
-- **Traces:** `DragonSpark.Acme` (Source)
+- **Traces:** `DragonSpark.AutoCert` (Source)
   - Visualizes order flow, validation attempts, and DNS propagation wait times.
-- **Metrics:** `DragonSpark.Acme` (Meter)
+- **Metrics:** `DragonSpark.AutoCert` (Meter)
   - `acme.certificates.renewed` (Counter)
   - `acme.challenges.duration` (Histogram)
   - `acme.certificates.expiry_days` (Gauge)

@@ -1,0 +1,10 @@
+<Solution>
+    <Folder Name="/Tests/">
+        <Project Path="tests/DragonSpark.AutoCert.IntegrationTests/DragonSpark.AutoCert.IntegrationTests.csproj"/>
+        <Project Path="tests/DragonSpark.AutoCert.UnitTests/DragonSpark.AutoCert.UnitTests.csproj"/>
+    </Folder>
+    <Project Path="src/DragonSpark.AutoCert.EntityFramework/DragonSpark.AutoCert.EntityFramework.csproj"/>
+    <Project Path="src/DragonSpark.AutoCert.Redis/DragonSpark.AutoCert.Redis.csproj"/>
+    <Project Path="src/DragonSpark.AutoCert/DragonSpark.AutoCert.csproj"/>
+    <Project Path="src/DragonSpark.AspNetCore.AutoCert/DragonSpark.AspNetCore.AutoCert.csproj"/>
+</Solution>
