@@ -80,7 +80,8 @@ public partial class AutoCertRenewalService(
             }
     }
 
-    private async Task ProcessDomainAsync(string domain, ICertificateStore certificateStore, IAutoCertService AutoCertService,
+    private async Task ProcessDomainAsync(string domain, ICertificateStore certificateStore,
+        IAutoCertService AutoCertService,
         CancellationToken cancellationToken)
     {
         var cert = await certificateStore.GetCertificateAsync(domain, cancellationToken);

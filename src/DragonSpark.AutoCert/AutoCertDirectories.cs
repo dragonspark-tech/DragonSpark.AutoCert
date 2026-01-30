@@ -31,4 +31,10 @@ public static class AutoCertDirectories
     ///     Google Trust Services Staging Directory.
     /// </summary>
     public static readonly Uri GoogleStaging = new("https://dv.acme-v02.test-api.pki.goog/directory");
+
+    /// <summary>
+    ///     Pebble Local Development ACME Directory (Port 14000)
+    ///     <see href="https://github.com/letsencrypt/pebble" />
+    /// </summary>
+    public static readonly Uri Pebble = new("https://localhost:14000/dir");
 }

@@ -71,7 +71,8 @@ public partial class AutoCertDiagnosticsService(
         HttpStatusCode statusCode);
 
     [LoggerMessage(LogLevel.Error, "Connectivity Check: FAILED. Could not reach CA.")]
-    static partial void LogConnectivityCheckFailedCaUnreachable(ILogger<AutoCertDiagnosticsService> logger, Exception ex);
+    static partial void LogConnectivityCheckFailedCaUnreachable(ILogger<AutoCertDiagnosticsService> logger,
+        Exception ex);
 
     [LoggerMessage(LogLevel.Information, "Account Check: PASSED (Account found)")]
     static partial void LogAccountCheckPassedAccountFound(ILogger<AutoCertDiagnosticsService> logger);

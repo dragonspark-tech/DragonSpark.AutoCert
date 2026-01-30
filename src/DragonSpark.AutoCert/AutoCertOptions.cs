@@ -86,6 +86,12 @@ public class AutoCertOptions
     /// </summary>
     public List<string> ManagedDomains { get; set; } = [];
 
+    /// <summary>
+    ///     Gets or sets a list of additional issuer certificates (DER encoded) to include in the PFX chain.
+    ///     Useful for testing with Pebble or private ACME servers where the root is not trusted.
+    /// </summary>
+    public List<byte[]> AdditionalIssuers { get; set; } = [];
+
     public class CertificateRequestInfo
     {
         public string CountryName { get; set; } = "US";

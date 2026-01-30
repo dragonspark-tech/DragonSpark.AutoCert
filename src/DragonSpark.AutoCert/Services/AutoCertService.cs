@@ -47,7 +47,8 @@ public partial class AutoCertService(
         var order = await GetOrCreateOrderAsync(acme, domainList, cancellationToken);
 
         // ReSharper disable once ExplicitCallerInfoArgument
-        using (var validationActivity = AutoCertDiagnostics.ActivitySource.StartActivity("AutoCertService.ValidateChallenges"))
+        using (var validationActivity =
+               AutoCertDiagnostics.ActivitySource.StartActivity("AutoCertService.ValidateChallenges"))
         {
             await ValidateOrderAuthorizationsAsync(order, validationActivity, cancellationToken);
         }
@@ -132,29 +133,44 @@ public partial class AutoCertService(
             LogRestoringExistingAcmeAccount();
             var accountKey = KeyFactory.FromPem(accountKeyPem);
             acme = CreateContext(accountKey);
-            await acme.Account();
+
+            try
+            {
+                await acme.Account();
+            }
+            catch (AcmeRequestException ex)
+            {
+                LogOrphanedAccountFoundCreatingNew(ex.Message);
+                acme = await CreateNewAccountAsync(cancellationToken);
+            }
         }
         else
         {
-            acme = CreateContext();
-
-            if (!string.IsNullOrEmpty(_options.AccountKeyId) && !string.IsNullOrEmpty(_options.AccountHmacKey))
-            {
-                LogUsingExternalAccountBindingEab();
-                await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed,
-                    _options.AccountKeyId,
-                    _options.AccountHmacKey);
-            }
-            else
-            {
-                LogCreatingNewAcmeAccountForEmail(_options.Email);
-                await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed);
-            }
-
-            LogSavingNewAcmeAccountKey();
-            await _accountStore.SaveAccountKeyAsync(acme.AccountKey.ToPem(), cancellationToken);
+            acme = await CreateNewAccountAsync(cancellationToken);
         }
 
+        return acme;
+    }
+
+    private async Task<IAcmeContext> CreateNewAccountAsync(CancellationToken cancellationToken)
+    {
+        var acme = CreateContext();
+
+        if (!string.IsNullOrEmpty(_options.AccountKeyId) && !string.IsNullOrEmpty(_options.AccountHmacKey))
+        {
+            LogUsingExternalAccountBindingEab();
+            await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed,
+                _options.AccountKeyId,
+                _options.AccountHmacKey);
+        }
+        else
+        {
+            LogCreatingNewAcmeAccountForEmail(_options.Email);
+            await acme.NewAccount([$"mailto:{_options.Email}"], _options.TermsOfServiceAgreed);
+        }
+
+        LogSavingNewAcmeAccountKey();
+        await _accountStore.SaveAccountKeyAsync(acme.AccountKey.ToPem(), cancellationToken);
         return acme;
     }
 
@@ -210,17 +226,31 @@ public partial class AutoCertService(
 
         // ReSharper disable once ExplicitCallerInfoArgument
         using var finalizeActivity = AutoCertDiagnostics.ActivitySource.StartActivity("AutoCertService.FinalizeOrder");
-        var certChain = await order.Generate(new CsrInfo
+        var orderDetails = await order.Resource();
+
+        CertificateChain certChain;
+        if (orderDetails.Status == OrderStatus.Valid)
         {
-            CountryName = _options.CsrInfo.CountryName,
-            State = _options.CsrInfo.State,
-            Locality = _options.CsrInfo.Locality,
-            Organization = _options.CsrInfo.Organization,
-            OrganizationUnit = _options.CsrInfo.OrganizationUnit,
-            CommonName = commonName
-        }, privateKey);
+            LogOrderAlreadyValidDownloadingCertificate();
+            certChain = await order.Download();
+        }
+        else
+        {
+            certChain = await order.Generate(new CsrInfo
+            {
+                CountryName = _options.CsrInfo.CountryName,
+                State = _options.CsrInfo.State,
+                Locality = _options.CsrInfo.Locality,
+                Organization = _options.CsrInfo.Organization,
+                OrganizationUnit = _options.CsrInfo.OrganizationUnit,
+                CommonName = commonName
+            }, privateKey);
+        }
 
         var pfxBuilder = certChain.ToPfx(privateKey);
+
+        foreach (var issuer in _options.AdditionalIssuers) pfxBuilder.AddIssuer(issuer);
+
         var pfxBytes = pfxBuilder.Build(commonName, _options.CertificatePassword);
 
         var cert = CertificateLoaderHelper.LoadFromBytes(pfxBytes, _options.CertificatePassword);
@@ -381,6 +411,13 @@ public partial class AutoCertService(
 
     [LoggerMessage(LogLevel.Warning, "Failed to load existing order. Creating new order.")]
     partial void LogFailedToLoadExistingOrderCreatingNew(Exception ex);
+
+    [LoggerMessage(LogLevel.Information, "Order is already valid. Downloading existing certificate.")]
+    partial void LogOrderAlreadyValidDownloadingCertificate();
+
+    [LoggerMessage(LogLevel.Warning,
+        "Existing account key invalid or orphaned (server returned error: {error}). Creating new.")]
+    partial void LogOrphanedAccountFoundCreatingNew(string error);
 
     [LoggerMessage(LogLevel.Information, "Creating new order.")]
     partial void LogCreatingNewOrder();
