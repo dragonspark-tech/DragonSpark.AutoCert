@@ -49,10 +49,12 @@ public partial class AutoCertChallengeMiddleware(
     }
 
     [LoggerMessage(LogLevel.Debug, "Received ACME challenge request for token: {token}")]
-    static partial void LogReceivedAcmeChallengeRequestForToken(ILogger<AutoCertChallengeMiddleware> logger, string token);
+    static partial void LogReceivedAcmeChallengeRequestForToken(ILogger<AutoCertChallengeMiddleware> logger,
+        string token);
 
     [LoggerMessage(LogLevel.Information, "Serving ACME challenge response for token: {token}")]
-    static partial void LogServingAcmeChallengeResponseForToken(ILogger<AutoCertChallengeMiddleware> logger, string token);
+    static partial void LogServingAcmeChallengeResponseForToken(ILogger<AutoCertChallengeMiddleware> logger,
+        string token);
 
     [LoggerMessage(LogLevel.Warning, "ACME challenge token not found: {token}")]
     static partial void LogAcmeChallengeTokenNotFound(ILogger<AutoCertChallengeMiddleware> logger, string token);

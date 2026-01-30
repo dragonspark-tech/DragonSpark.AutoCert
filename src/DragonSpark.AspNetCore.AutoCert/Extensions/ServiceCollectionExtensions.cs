@@ -1,11 +1,12 @@
+using DragonSpark.AspNetCore.AutoCert.Https;
 using DragonSpark.AutoCert;
 using DragonSpark.AutoCert.Abstractions;
 using DragonSpark.AutoCert.Helpers;
 using DragonSpark.AutoCert.Services;
 using DragonSpark.AutoCert.Stores;
-using DragonSpark.AspNetCore.Acme.Https;
-using DragonSpark.AspNetCore.Acme.Middleware;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 // ReSharper disable CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection;
@@ -26,7 +27,7 @@ public static class ServiceCollectionExtensions
     {
         services.Configure(configure);
 
-        services.TryAddSingleton<AutoCertChallengeMiddleware>();
+
         services.TryAddSingleton<AutoCertCertificateSelector>();
 
         services.TryAddSingleton<AccountKeyCipher>();
@@ -38,6 +39,8 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<AutoCertServiceDependencies>();
         services.TryAddSingleton<IAutoCertService, AutoCertService>();
         services.TryAddSingleton<AutoCertDiagnosticsService>();
+        services.TryAddEnumerable(ServiceDescriptor
+            .Singleton<IConfigureOptions<KestrelServerOptions>, AutoCertKestrelOptionsSetup>());
 
         services.AddHostedService<AutoCertRenewalService>();
 
