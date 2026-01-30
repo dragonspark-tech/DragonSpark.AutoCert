@@ -7,4 +7,8 @@
     <Project Path="src/DragonSpark.AutoCert.Redis/DragonSpark.AutoCert.Redis.csproj"/>
     <Project Path="src/DragonSpark.AutoCert/DragonSpark.AutoCert.csproj"/>
     <Project Path="src/DragonSpark.AspNetCore.AutoCert/DragonSpark.AspNetCore.AutoCert.csproj"/>
+    <Folder Name="/Samples/">
+        <Project Path="samples/DragonSpark.AutoCert.Sample.Hybrid/DragonSpark.AutoCert.Sample.Hybrid.csproj"/>
+        <Project Path="samples/DragonSpark.AutoCert.Sample/DragonSpark.AutoCert.Sample.csproj"/>
+    </Folder>
 </Solution>

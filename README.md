@@ -15,6 +15,11 @@
 
 > A modern, lightweight, and extensible ACME e.g., (Let's Encrypt) client for .NET 10+.
 
+## 🧪 Samples
+
+- **[Basic Sample](samples/DragonSpark.AutoCert.Sample/README.md)**: Simple setup using **File System** storage. Perfect for development and single-server apps.
+- **[Hybrid Sample (Redis + SQL)](samples/DragonSpark.AutoCert.Sample.Hybrid/README.md)**: **Recommended for Production**. Demonstrates a robust, clustered installation using **Redis** (L1 Cache) and **SQL Server** (L2 Persistence) with the simplified `.UseHybridPersistence<TContext>()` API.
+
 ## 📖 Overview
 
 DragonSpark.AutoCert is designed to make HTTPS automatic and effortless for .NET applications. Whether you are running a single service on a VPS or a complex microservices architecture in Kubernetes, this library handles the entire certificate lifecycle—ordering, validation, installation, and renewal—without manual intervention.
@@ -58,8 +63,9 @@ builder.Services.AddAutoCert(options =>
     options.Email = "admin@example.com";
     options.TermsOfServiceAgreed = true;
     options.CertificatePassword = "StrongPassword123!@#"; // REQUIRED for PFX export/protection
+    options.CertificatePath = ".letsencrypt"; // Stores certs/keys in a local folder
 })
-.AddFileSystemStore(".letsencrypt"); // Stores certs/keys in a local folder
+;
 ```
 
 ### 2. Production Setup (Clustered / High Availability)
@@ -161,11 +167,18 @@ builder.Services.AddAutoCert(...)
 ```
 
 **Layered Persistence (Hybrid):**
-Use a distributed cache for speed (L1) and a persistent store (FileSystem/EF) for durability (L2). This is **highly recommended** for high-performance production apps to avoid network latency during TLS handshakes.
+Use a distributed cache for speed (L1) and a persistent store (EF Core) for durability (L2). This is **highly recommended** for high-performance production apps to avoid network latency during TLS handshakes.
 
 ```csharp
+// 1. Add Redis (L1)
+builder.Services.AddStackExchangeRedisCache(...)
+
+// 2. Add DbContext (L2)
+builder.Services.AddDbContext<MyCertContext>(...)
+
+// 3. Register AutoCert with Hybrid Persistence
 builder.Services.AddAutoCert(...)
-    .UseLayeredPersistence(); // Configures Redis as L1, FileSystem as L2
+    .UseHybridPersistence<MyCertContext>(); // Automatically configures Redis as L1, SQL/EF as L2
 ```
 
 ### Lifecycle Hooks

@@ -4,6 +4,7 @@ services:
     command: -config /test/config/pebble-config.json
     ports:
       - 14000:14000 # ACME Directory
+      - 15000:15000 # Management Interface (for roots)
     environment:
       - PEBBLE_VA_ALWAYS_VALID=1
       - PEBBLE_VA_NOSLEEP=1
@@ -19,3 +20,11 @@ services:
     image: redis:latest
     ports:
       - 6379:6379
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Password123!
+    ports:
+      - 1433:1433
