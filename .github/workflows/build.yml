@@ -1,0 +1,100 @@
+name: Build, Analyze and Publish
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+      - "hotfix/**"
+  pull_request:
+    types: [opened, synchronize, reopened]
+  release:
+    types: [published]
+
+jobs:
+  build-and-analyze:
+    name: Build and Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: "zulu"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+          include-prerelease: true
+
+      - name: Start Docker Services
+        run: docker compose up -d --wait
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache SonarCloud scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: ./.sonar/scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+
+      - name: Install SonarCloud scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ./.sonar/scanner
+          dotnet tool update dotnet-sonarscanner --tool-path ./.sonar/scanner
+
+      - name: Install Dotnet Coverage
+        run: dotnet tool install --global dotnet-coverage
+
+      - name: Build and Analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          ./.sonar/scanner/dotnet-sonarscanner begin /k:"dragonspark-tech_DragonSpark.AutoCert" /o:"dragonspark-tech" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
+          dotnet build DragonSpark.AutoCert.slnx --configuration Release
+          dotnet test DragonSpark.AutoCert.slnx --configuration Release --no-build --verbosity normal -- --coverage --coverage-settings Coverage.Settings.xml --coverage-output-format xml --coverage-output coverage.xml
+          dotnet-coverage merge tests/DragonSpark.AutoCert.IntegrationTests/bin/Release/net10.0/TestResults/coverage.xml tests/DragonSpark.AutoCert.UnitTests/bin/Release/net10.0/TestResults/coverage.xml -o coverage.xml --output-format xml
+          ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+  publish:
+    name: Publish to NuGet
+    needs: build-and-analyze
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: nuget
+      url: https://www.nuget.org/packages/DragonSpark.AutoCert
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+          include-prerelease: true
+
+      - name: Pack
+        run: dotnet pack DragonSpark.AutoCert.slnx --configuration Release --output nuget-packages
+
+      - name: Publish to NuGet (Trusted Publishing)
+        run: dotnet nuget push nuget-packages/*.nupkg --source https://api.nuget.org/v3/index.json
