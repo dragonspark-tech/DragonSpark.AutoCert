@@ -16,6 +16,11 @@ public partial class AutoCertDiagnosticsService(
 {
     private readonly AutoCertOptions _options = options.Value;
 
+    /// <summary>
+    ///     Validates the ACME environment (connectivity, account existence).
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if all checks passed, false otherwise.</returns>
     public async Task<bool> ValidateEnvironmentAsync(CancellationToken cancellationToken = default)
     {
         LogStartingAcmeDiagnosticChecks(logger);

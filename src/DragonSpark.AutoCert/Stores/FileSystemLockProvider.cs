@@ -13,6 +13,7 @@ public partial class FileSystemLockProvider(IOptions<AutoCertOptions> options, I
 {
     private readonly AutoCertOptions _options = options.Value;
 
+    /// <inheritdoc />
     public async Task<IDistributedLock> AcquireLockAsync(string key, CancellationToken cancellationToken = default)
     {
         var lockFilePath = GetLockFilePath(key);

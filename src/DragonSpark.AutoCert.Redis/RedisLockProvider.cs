@@ -15,6 +15,11 @@ public sealed partial class RedisLockProvider : ILockProvider, IDisposable
     private readonly ILogger<RedisLockProvider> _logger;
     private readonly RedLockFactory _redLockFactory;
 
+    /// <summary>
+    ///     Initializes a new instance of <see cref="RedisLockProvider" />.
+    /// </summary>
+    /// <param name="redlinkEndPoints">List of Redis endpoints (host:port).</param>
+    /// <param name="logger">The logger.</param>
     public RedisLockProvider(IEnumerable<string> redlinkEndPoints, ILogger<RedisLockProvider> logger)
     {
         _logger = logger;
@@ -24,17 +29,24 @@ public sealed partial class RedisLockProvider : ILockProvider, IDisposable
         _redLockFactory = RedLockFactory.Create(endpoints);
     }
 
+    /// <summary>
+    ///     Initializes a new instance of <see cref="RedisLockProvider" /> using an existing RedLock factory.
+    /// </summary>
+    /// <param name="redLockFactory">The RedLock factory.</param>
+    /// <param name="logger">The logger.</param>
     public RedisLockProvider(RedLockFactory redLockFactory, ILogger<RedisLockProvider> logger)
     {
         _redLockFactory = redLockFactory;
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
         _redLockFactory.Dispose();
     }
 
+    /// <inheritdoc />
     public async Task<IDistributedLock> AcquireLockAsync(string key, CancellationToken cancellationToken = default)
     {
         var expiry = TimeSpan.FromSeconds(30);

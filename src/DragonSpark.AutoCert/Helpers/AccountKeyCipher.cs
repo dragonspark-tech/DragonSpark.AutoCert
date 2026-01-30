@@ -14,6 +14,11 @@ public class AccountKeyCipher(IOptions<AutoCertOptions> options)
     private const int Iterations = 100000;
     private readonly string _password = options.Value.CertificatePassword;
 
+    /// <summary>
+    ///     Encrypts the plain text using AES encryption with a derived key.
+    /// </summary>
+    /// <param name="plainText">The text to encrypt.</param>
+    /// <returns>Base64 encoded cipher text.</returns>
     public string Encrypt(string plainText)
     {
         if (string.IsNullOrEmpty(plainText)) return plainText;
@@ -42,6 +47,12 @@ public class AccountKeyCipher(IOptions<AutoCertOptions> options)
         return Convert.ToBase64String(ms.ToArray());
     }
 
+    /// <summary>
+    ///     Decrypts the cipher text.
+    /// </summary>
+    /// <param name="cipherText">Base64 encoded cipher text.</param>
+    /// <returns>The original plain text.</returns>
+    /// <exception cref="CryptographicException">Thrown when decryption fails.</exception>
     public string? Decrypt(string cipherText)
     {
         if (string.IsNullOrEmpty(cipherText)) return cipherText;

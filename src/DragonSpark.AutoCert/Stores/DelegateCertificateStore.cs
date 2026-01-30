@@ -11,17 +11,20 @@ public class DelegateCertificateStore(
     Func<string, X509Certificate2, CancellationToken, Task> saveFunc,
     Func<string, CancellationToken, Task>? deleteFunc = null) : ICertificateStore
 {
+    /// <inheritdoc />
     public Task<X509Certificate2?> GetCertificateAsync(string domain, CancellationToken cancellationToken = default)
     {
         return loadFunc(domain, cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task SaveCertificateAsync(string domain, X509Certificate2 certificate,
         CancellationToken cancellationToken = default)
     {
         return saveFunc(domain, certificate, cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task DeleteCertificateAsync(string domain, CancellationToken cancellationToken = default)
     {
         return deleteFunc != null ? deleteFunc(domain, cancellationToken) : Task.CompletedTask;

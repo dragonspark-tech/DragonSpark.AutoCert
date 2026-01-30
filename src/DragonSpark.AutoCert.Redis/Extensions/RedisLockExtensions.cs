@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 // ReSharper disable CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection;
 
+/// <summary>
+///     Extensions for configuring Redis lock provider.
+/// </summary>
 public static class RedisLockExtensions
 {
     /// <summary>

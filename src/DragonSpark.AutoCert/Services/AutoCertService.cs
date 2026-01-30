@@ -277,6 +277,11 @@ public partial class AutoCertService(
             }
     }
 
+    /// <summary>
+    ///     Creates a new ACME context.
+    /// </summary>
+    /// <param name="accountKey">The account key to use, if any.</param>
+    /// <returns>The ACME context.</returns>
     protected virtual IAcmeContext CreateContext(IKey? accountKey = null)
     {
         var httpClient = _httpClientFactory.CreateClient("AutoCert");

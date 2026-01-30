@@ -20,6 +20,7 @@ public partial class AutoCertRenewalService(
     private readonly ConcurrentDictionary<string, double> _domainExpiryDays = new();
     private readonly AutoCertOptions _options = options.Value;
 
+    /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         AutoCertDiagnostics.Meter.CreateObservableGauge("acme.certificates.expiry_days",

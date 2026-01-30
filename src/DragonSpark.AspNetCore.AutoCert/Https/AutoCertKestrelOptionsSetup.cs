@@ -4,10 +4,14 @@ using Microsoft.Extensions.Options;
 
 namespace DragonSpark.AspNetCore.AutoCert.Https;
 
+/// <summary>
+///     Configures Kestrel to use <see cref="AutoCertCertificateSelector" /> for HTTPS certificate selection.
+/// </summary>
 public class AutoCertKestrelOptionsSetup(
     AutoCertCertificateSelector selector,
     ILogger<AutoCertKestrelOptionsSetup> logger) : IConfigureOptions<KestrelServerOptions>
 {
+    /// <inheritdoc />
     public void Configure(KestrelServerOptions options)
     {
         options.ConfigureHttpsDefaults(httpsOptions =>

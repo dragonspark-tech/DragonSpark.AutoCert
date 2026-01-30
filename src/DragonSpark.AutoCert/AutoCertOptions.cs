@@ -92,12 +92,34 @@ public class AutoCertOptions
     /// </summary>
     public List<byte[]> AdditionalIssuers { get; set; } = [];
 
+    /// <summary>
+    ///     Information for the Certificate Signing Request (CSR).
+    /// </summary>
     public class CertificateRequestInfo
     {
+        /// <summary>
+        ///     Gets or sets the Country Name (C). Defaults to "US".
+        /// </summary>
         public string CountryName { get; set; } = "US";
+
+        /// <summary>
+        ///     Gets or sets the State or Province Name (ST).
+        /// </summary>
         public string State { get; set; } = string.Empty;
+
+        /// <summary>
+        ///     Gets or sets the Locality Name (L).
+        /// </summary>
         public string Locality { get; set; } = string.Empty;
+
+        /// <summary>
+        ///     Gets or sets the Organization Name (O).
+        /// </summary>
         public string Organization { get; set; } = string.Empty;
+
+        /// <summary>
+        ///     Gets or sets the Organizational Unit Name (OU).
+        /// </summary>
         public string OrganizationUnit { get; set; } = string.Empty;
     }
 }

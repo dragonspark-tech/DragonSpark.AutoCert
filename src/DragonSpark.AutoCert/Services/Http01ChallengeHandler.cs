@@ -18,10 +18,14 @@ public partial class Http01ChallengeHandler(
     private readonly AutoCertOptions _options = options.Value;
 
     // ReSharper disable once MemberCanBePrivate.Global
+    /// <summary>
+    ///     The type of challenge handled (http-01).
+    /// </summary>
     public static string ChallengeType => ChallengeTypes.Http01;
 
     string IChallengeHandler.ChallengeType => ChallengeType;
 
+    /// <inheritdoc />
     public async Task<bool> HandleChallengeAsync(IAuthorizationContext authorizationContext,
         CancellationToken cancellationToken)
     {

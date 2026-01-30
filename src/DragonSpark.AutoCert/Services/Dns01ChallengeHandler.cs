@@ -20,10 +20,14 @@ public partial class Dns01ChallengeHandler(
 {
     private readonly AutoCertOptions _options = options.Value;
 
+    /// <summary>
+    ///     The type of challenge handled (dns-01).
+    /// </summary>
     public static string ChallengeType => ChallengeTypes.Dns01;
 
     string IChallengeHandler.ChallengeType => ChallengeType;
 
+    /// <inheritdoc />
     public async Task<bool> HandleChallengeAsync(IAuthorizationContext authorizationContext,
         CancellationToken cancellationToken)
     {
