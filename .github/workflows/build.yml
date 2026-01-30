@@ -68,7 +68,7 @@ jobs:
         run: |
           ./.sonar/scanner/dotnet-sonarscanner begin /k:"dragonspark-tech_DragonSpark.AutoCert" /o:"dragonspark-tech" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
           dotnet build DragonSpark.AutoCert.slnx --configuration Release
-          dotnet test DragonSpark.AutoCert.slnx --configuration Release --no-build --verbosity normal -- --coverage --coverage-settings Coverage.Settings.xml --coverage-output-format xml --coverage-output coverage.xml
+          dotnet test --solution DragonSpark.AutoCert.slnx --configuration Release --no-build --verbosity normal -- --coverage --coverage-settings Coverage.Settings.xml --coverage-output-format xml --coverage-output coverage.xml
           dotnet-coverage merge tests/DragonSpark.AutoCert.IntegrationTests/bin/Release/net10.0/TestResults/coverage.xml tests/DragonSpark.AutoCert.UnitTests/bin/Release/net10.0/TestResults/coverage.xml -o coverage.xml --output-format xml
           ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
