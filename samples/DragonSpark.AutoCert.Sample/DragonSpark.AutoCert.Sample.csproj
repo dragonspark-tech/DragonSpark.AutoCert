@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+        <SonarQubeExclude>true</SonarQubeExclude>
+        <ExcludeFromCodeCoverage>true</ExcludeFromCodeCoverage>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\DragonSpark.AspNetCore.AutoCert\DragonSpark.AspNetCore.AutoCert.csproj"/>
+        <ProjectReference Include="..\..\src\DragonSpark.AutoCert\DragonSpark.AutoCert.csproj"/>
+    </ItemGroup>
+
+</Project>

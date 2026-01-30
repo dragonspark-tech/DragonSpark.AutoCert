@@ -8,3 +8,4 @@ riderModule.iml
 coverage/
 coverage*.xml
 test*.txt
+.letsencrypt/
