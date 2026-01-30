@@ -17,7 +17,7 @@ public class EfCertificateStore<TDbContext>(TDbContext context, IOptions<AutoCer
     private readonly AutoCertOptions _options = options.Value;
 
     /// <inheritdoc />
-    public async Task<X509Certificate2?> GetCertificateAsync(string domain,
+    public virtual async Task<X509Certificate2?> GetCertificateAsync(string domain,
         CancellationToken cancellationToken = default)
     {
         var entity = await context.Set<AcmeCertificate>()
@@ -36,7 +36,7 @@ public class EfCertificateStore<TDbContext>(TDbContext context, IOptions<AutoCer
     }
 
     /// <inheritdoc />
-    public async Task SaveCertificateAsync(string domain, X509Certificate2 certificate,
+    public virtual async Task SaveCertificateAsync(string domain, X509Certificate2 certificate,
         CancellationToken cancellationToken = default)
     {
         var entity = await context.Set<AcmeCertificate>()
@@ -53,7 +53,7 @@ public class EfCertificateStore<TDbContext>(TDbContext context, IOptions<AutoCer
     }
 
     /// <inheritdoc />
-    public async Task DeleteCertificateAsync(string domain, CancellationToken cancellationToken = default)
+    public virtual async Task DeleteCertificateAsync(string domain, CancellationToken cancellationToken = default)
     {
         var entity = await context.Set<AcmeCertificate>()
             .FindAsync([domain], cancellationToken);

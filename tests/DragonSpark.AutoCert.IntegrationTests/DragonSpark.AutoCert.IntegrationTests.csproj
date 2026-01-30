@@ -27,11 +27,13 @@
         <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.2"/>
         <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.2"/>
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.2"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\DragonSpark.AutoCert\DragonSpark.AutoCert.csproj"/>
         <ProjectReference Include="..\..\src\DragonSpark.AspNetCore.AutoCert\DragonSpark.AspNetCore.AutoCert.csproj"/>
+        <ProjectReference Include="..\..\src\DragonSpark.AutoCert.EntityFramework\DragonSpark.AutoCert.EntityFramework.csproj"/>
     </ItemGroup>
 
 </Project>

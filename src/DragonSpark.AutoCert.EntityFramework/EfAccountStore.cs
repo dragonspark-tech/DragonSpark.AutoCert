@@ -15,7 +15,7 @@ public class EfAccountStore<TDbContext>(TDbContext context, AccountKeyCipher cip
     private const string DefaultAccountId = "default";
 
     /// <inheritdoc />
-    public async Task<string?> LoadAccountKeyAsync(CancellationToken cancellationToken = default)
+    public virtual async Task<string?> LoadAccountKeyAsync(CancellationToken cancellationToken = default)
     {
         var entity = await context.Set<AcmeAccount>()
             .FindAsync([DefaultAccountId], cancellationToken);
@@ -26,7 +26,7 @@ public class EfAccountStore<TDbContext>(TDbContext context, AccountKeyCipher cip
     }
 
     /// <inheritdoc />
-    public async Task SaveAccountKeyAsync(string pemKey, CancellationToken cancellationToken = default)
+    public virtual async Task SaveAccountKeyAsync(string pemKey, CancellationToken cancellationToken = default)
     {
         var entity = await context.Set<AcmeAccount>()
             .FindAsync([DefaultAccountId], cancellationToken);

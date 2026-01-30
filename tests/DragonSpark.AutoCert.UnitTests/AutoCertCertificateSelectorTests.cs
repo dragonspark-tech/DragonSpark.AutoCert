@@ -21,6 +21,25 @@ public class AutoCertCertificateSelectorTests
     }
 
     [Fact]
+    public async Task GetCertificateAsync_ExactMatch_ReturnsCertificate()
+    {
+        // Arrange
+        const string domain = "example.com";
+        var cert = CreateTestCertificate(domain);
+        _certificateStoreMock.Setup(x => x.GetCertificateAsync(domain, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cert);
+
+        var selector = new AutoCertCertificateSelector(_certificateStoreMock.Object, _loggerMock.Object);
+
+        // Act
+        var result = await selector.GetCertificateAsync(domain, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(cert, result);
+    }
+
+    [Fact]
     public async Task SelectCertificateAsync_ExactMatch_ReturnsCertificate()
     {
         // Arrange

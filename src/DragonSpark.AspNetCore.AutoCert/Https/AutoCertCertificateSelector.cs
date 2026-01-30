@@ -28,6 +28,22 @@ public partial class AutoCertCertificateSelector(
     }
 
     /// <summary>
+    ///     Selects a TLS server certificate for a specific host.
+    /// </summary>
+    /// <param name="host">The host name to use for selecting a certificate.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>
+    ///     A <see cref="ValueTask{SslStreamCertificateContext}" /> representing the selected certificate, or <c>null!</c>
+    ///     if no matching certificate was found.
+    /// </returns>
+    public async ValueTask<SslStreamCertificateContext> SelectCertificateAsync(string? host,
+        CancellationToken cancellationToken)
+    {
+        var cert = await GetCertificateAsync(host, cancellationToken);
+        return cert != null ? SslStreamCertificateContext.Create(cert, null) : null!;
+    }
+
+    /// <summary>
     ///     Selects a certificate for the host and returns it directly.
     /// </summary>
     public async Task<X509Certificate2?> GetCertificateAsync(string? host, CancellationToken cancellationToken)
@@ -59,38 +75,6 @@ public partial class AutoCertCertificateSelector(
 
         LogNoCertificateFoundForHost(logger, host);
         return null;
-    }
-
-    public async ValueTask<SslStreamCertificateContext> SelectCertificateAsync(string? host,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrEmpty(host))
-        {
-            LogNoSniHostnameProvidedInClienthello(logger);
-            return null!;
-        }
-
-        var cert = await certificateStore.GetCertificateAsync(host, cancellationToken);
-        if (cert != null)
-        {
-            LogFoundCertificateForHostHost(logger, host);
-            return SslStreamCertificateContext.Create(cert, null);
-        }
-
-        var parts = host.Split('.');
-        if (parts.Length > 2)
-        {
-            var wildcard = "*." + string.Join('.', parts, 1, parts.Length - 1);
-            var wildcardCert = await certificateStore.GetCertificateAsync(wildcard, cancellationToken);
-            if (wildcardCert != null)
-            {
-                LogFoundWildcardCertificateForHostWildcard(logger, host, wildcard);
-                return SslStreamCertificateContext.Create(wildcardCert, null);
-            }
-        }
-
-        LogNoCertificateFoundForHost(logger, host);
-        return null!;
     }
 
     [LoggerMessage(LogLevel.Debug, "No SNI hostname provided in ClientHello.")]

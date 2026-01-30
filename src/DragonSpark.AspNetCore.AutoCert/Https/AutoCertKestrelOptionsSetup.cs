@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace DragonSpark.AspNetCore.AutoCert.Https;
 
-internal class AutoCertKestrelOptionsSetup(
+public class AutoCertKestrelOptionsSetup(
     AutoCertCertificateSelector selector,
     ILogger<AutoCertKestrelOptionsSetup> logger) : IConfigureOptions<KestrelServerOptions>
 {

@@ -36,12 +36,13 @@ builder.Services.AddAutoCert(options =>
     try
     {
         using var handler = new HttpClientHandler();
-        handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-        
+        handler.ServerCertificateCustomValidationCallback =
+            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+
         using var http = new HttpClient(handler);
         Console.WriteLine("Fetching Pebble Root CA...");
         var rootCaBytes = http.GetByteArrayAsync("https://localhost:15000/roots/0").GetAwaiter().GetResult();
-        
+
         var rootCert = X509CertificateLoader.LoadCertificate(rootCaBytes);
         options.AdditionalIssuers.Add(rootCert.RawData);
         Console.WriteLine($"Added Pebble Root CA: {rootCert.Subject}");

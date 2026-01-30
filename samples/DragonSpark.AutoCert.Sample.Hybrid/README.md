@@ -1,13 +1,16 @@
 # DragonSpark.AutoCert Hybrid Sample (SQL + Redis)
 
-This sample demonstrates the **Hybrid Persistence** capabilities of `DragonSpark.AutoCert`. It combines **Redis** (for high-performance caching) and **SQL Server** (for reliable long-term persistence) to store ACME accounts and certificates.
+This sample demonstrates the **Hybrid Persistence** capabilities of `DragonSpark.AutoCert`. It combines **Redis** (for
+high-performance caching) and **SQL Server** (for reliable long-term persistence) to store ACME accounts and
+certificates.
 
 ## Features
 
 - **Layered Storage**:
-  - **L1 (Cache)**: Redis. Fast access for frequent reads (e.g., handshake certificate selection).
-  - **L2 (Persistence)**: SQL Server (via Entity Framework Core). Durable storage for certificates and account keys.
-- **Simplified Setup**: Uses the `.UseHybridPersistence<TContext>()` extension method to automatically wire up the complex layered dependency injection.
+    - **L1 (Cache)**: Redis. Fast access for frequent reads (e.g., handshake certificate selection).
+    - **L2 (Persistence)**: SQL Server (via Entity Framework Core). Durable storage for certificates and account keys.
+- **Simplified Setup**: Uses the `.UseHybridPersistence<TContext>()` extension method to automatically wire up the
+  complex layered dependency injection.
 - **Certificate Reuse**: Automatically reuses valid certificates from SQL/Redis before ordering new ones.
 
 ## Prerequisites
@@ -19,7 +22,8 @@ This sample demonstrates the **Hybrid Persistence** capabilities of `DragonSpark
 
 ### 1. Start Infrastructure
 
-Use the provided `docker-compose.yaml` in the root of the repository to start **Pebble** (ACME Server), **Redis**, and **SQL Server**.
+Use the provided `docker-compose.yaml` in the root of the repository to start **Pebble** (ACME Server), **Redis**, and *
+*SQL Server**.
 
 ```bash
 docker-compose up -d
@@ -56,13 +60,13 @@ This registers:
 
 ### 4. Verification
 
-1.  **First Run**:
+1. **First Run**:
     - The app connects to SQL Server (creates DB `AutoCertHybrid` if missing).
     - Checks Redis (Empty).
     - Checks SQL (Empty).
     - Orders a new certificate from Pebble.
     - Saves to SQL and Redis.
-2.  **Subsequent Runs**:
+2. **Subsequent Runs**:
     - App starts.
     - Checks Redis/SQL.
     - Finds existing valid certificate.
@@ -70,5 +74,7 @@ This registers:
 
 ## Troubleshooting
 
-- **Database Errors**: Ensure SQL Server is running and accessible at `localhost,1433`. The sample uses a hardcoded connection string for local development: `Server=localhost,1433;Database=AutoCertHybrid;User Id=sa;Password=Password123!;TrustServerCertificate=True;`.
+- **Database Errors**: Ensure SQL Server is running and accessible at `localhost,1433`. The sample uses a hardcoded
+  connection string for local development:
+  `Server=localhost,1433;Database=AutoCertHybrid;User Id=sa;Password=Password123!;TrustServerCertificate=True;`.
 - **Redis Errors**: Ensure Redis is running at `localhost:6379`.

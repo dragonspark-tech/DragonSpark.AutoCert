@@ -44,8 +44,8 @@ dotnet run --project samples/DragonSpark.AutoCert.Sample
 2. **Validation**: Pebble internally validates the challenge.
 3. **Success**: A certificate will be issued and saved.
 4. **Browser Access**: Navigate to `https://localhost:5001` (or your app's HTTPS port).
-   - **Note**: Your browser will still warn about the certificate because the _issued_ certificate comes from Pebble's
-     untrusted root CA. This is expected and confirms the flow is working.
+    - **Note**: Your browser will still warn about the certificate because the _issued_ certificate comes from Pebble's
+      untrusted root CA. This is expected and confirms the flow is working.
 
 ## Troubleshooting
 
