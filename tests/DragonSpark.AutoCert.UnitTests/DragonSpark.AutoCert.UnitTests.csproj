@@ -17,6 +17,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.2"/>
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.2"/>
         <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.3.2"/>
         <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.2"/>
@@ -30,6 +32,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\DragonSpark.AutoCert\DragonSpark.AutoCert.csproj"/>
         <ProjectReference Include="..\..\src\DragonSpark.AspNetCore.AutoCert\DragonSpark.AspNetCore.AutoCert.csproj"/>
+        <ProjectReference Include="..\..\src\DragonSpark.AutoCert.EntityFramework\DragonSpark.AutoCert.EntityFramework.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using DragonSpark.AutoCert.Helpers;
 using DragonSpark.AutoCert.Stores;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace DragonSpark.AutoCert.UnitTests;
@@ -15,7 +16,8 @@ public sealed class FileSystemStoreTests : IDisposable
     {
         _tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(_tempPath);
-        _options = Options.Create(new AutoCertOptions { CertificatePath = _tempPath, CertificatePassword = "password" });
+        _options = Options.Create(new AutoCertOptions
+            { CertificatePath = _tempPath, CertificatePassword = "password" });
     }
 
     public void Dispose()
@@ -60,7 +62,8 @@ public sealed class FileSystemStoreTests : IDisposable
     {
         // Arrange
         var directory = Path.Combine(_tempPath, "subdir");
-        var options = Options.Create(new AutoCertOptions { CertificatePath = directory, CertificatePassword = "password" });
+        var options = Options.Create(new AutoCertOptions
+            { CertificatePath = directory, CertificatePassword = "password" });
         var cipher = new AccountKeyCipher(options);
         var store = new FileSystemAccountStore(options, cipher);
 
@@ -79,7 +82,7 @@ public sealed class FileSystemStoreTests : IDisposable
     public async Task CertificateStore_SaveAndGet_ReturnsCertificate()
     {
         // Arrange
-        var store = new FileSystemCertificateStore(_options);
+        var store = new FileSystemCertificateStore(_options, NullLogger<FileSystemCertificateStore>.Instance);
         const string domain = "fs-test.com";
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={domain}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
@@ -99,7 +102,7 @@ public sealed class FileSystemStoreTests : IDisposable
     public async Task CertificateStore_Delete_RemovesFile()
     {
         // Arrange
-        var store = new FileSystemCertificateStore(_options);
+        var store = new FileSystemCertificateStore(_options, NullLogger<FileSystemCertificateStore>.Instance);
         var domain = "fs-delete-test.com";
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={domain}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);

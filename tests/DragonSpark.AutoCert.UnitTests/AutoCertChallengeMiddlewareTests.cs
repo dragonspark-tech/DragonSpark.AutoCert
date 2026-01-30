@@ -1,5 +1,5 @@
-using DragonSpark.AutoCert.Abstractions;
 using DragonSpark.AspNetCore.Acme.Middleware;
+using DragonSpark.AutoCert.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
